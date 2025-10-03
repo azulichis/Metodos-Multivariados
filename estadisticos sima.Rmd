@@ -1,0 +1,60 @@
+---
+title: "Histogramas"
+date: "2025-10-03"
+output: 
+  pdf_document:
+    latex_engine: xelatex
+geometry: margin=1in
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Librerías
+
+```{r}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+```
+
+
+# Datos
+
+```{r}
+df <- read_excel("datos sima/Datos 2021-2024 Finales SIMA.xlsx", sheet = "CE")
+```
+
+# Histogramas
+
+```{r}
+# Acceder a la columna "date" directamente y convertir a POSIXct
+df$fecha <- as.POSIXct(df[["date"]])
+
+# Crear columna con el año
+df$year <- year(df$fecha)
+
+# Lista de contaminantes
+contaminantes <- c("CO", "NO2", "O3", "PM10", "PM2.5", "SO2", "TOUT")
+
+# Calcular medias anuales por contaminante
+df_medias <- df %>%
+  group_by(year) %>%
+  summarise(across(all_of(contaminantes), mean, na.rm = TRUE))
+
+print(df_medias)
+
+# Graficar
+for (cont in contaminantes) {
+  p <- ggplot(df_medias, aes(x = factor(year), y = .data[[cont]])) +
+    geom_col(fill = "steelblue") +
+    labs(title = paste("Media anual de", cont),
+         x = "Año", y = paste("Concentración media de", cont)) +
+    theme_minimal(base_size = 14)
+  
+  print(p)
+}
+```
+
