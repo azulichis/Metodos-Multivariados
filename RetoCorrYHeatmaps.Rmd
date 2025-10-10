@@ -1,0 +1,212 @@
+
+
+```{r setup, include=FALSE}
+library(readxl)
+datosSE <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 1) #subiendo archivo a R
+```
+
+```{r setup, include=FALSE}
+library(readxl)
+datosCE <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 2) #subiendo archivo a R
+```
+
+```{r setup, include=FALSE}
+library(readxl)
+datosSO2 <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 3) #subiendo archivo a R
+```
+
+```{r setup, include=FALSE}
+library(readxl)
+datosSUR <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 4) #subiendo archivo a R
+```
+
+#Analisis de correlación entre contaminantes y temperatura
+#SE
+```{r}
+cor(datosSE$CO,datosSE$TOUT)
+```
+
+```{r}
+cor(datosSE$NO2,datosSE$TOUT)
+```
+
+```{r}
+cor(datosSE$O3,datosSE$TOUT)
+```
+
+```{r}
+cor(datosSE$PM10,datosSE$TOUT)
+```
+
+```{r}
+cor(datosSE$SO2,datosSE$TOUT)
+```
+
+#CE
+```{r}
+cor(datosCE$CO,datosSE$TOUT)
+```
+
+```{r}
+cor(datosCE$NO2,datosSE$TOUT)
+```
+
+```{r}
+cor(datosCE$O3,datosSE$TOUT)
+```
+
+```{r}
+cor(datosCE$PM10,datosSE$TOUT)
+```
+
+```{r}
+cor(datosCE$SO2,datosSE$TOUT)
+```
+
+#SO2
+```{r}
+cor(datosSO2$CO,datosSE$TOUT)
+```
+
+```{r}
+cor(datosSO2$NO2,datosSE$TOUT)
+```
+
+```{r}
+cor(datosSO2$O3,datosSE$TOUT)
+```
+
+```{r}
+cor(datosSO2$PM10,datosSE$TOUT)
+```
+
+```{r}
+cor(datosSO2$SO2,datosSE$TOUT)
+```
+
+#SUR
+```{r}
+cor(datosSUR$CO,datosSE$TOUT)
+```
+
+```{r}
+cor(datosSUR$NO2,datosSE$TOUT)
+```
+
+```{r}
+cor(datosSUR$O3,datosSE$TOUT)
+```
+
+```{r}
+cor(datosSUR$PM10,datosSE$TOUT)
+```
+
+```{r}
+cor(datosSUR$SO2,datosSE$TOUT)
+```
+
+#Mapas de calor
+#SE
+```{r}
+library(RColorBrewer)
+varsSE <- c("CO", "NO2", "O3", "PM10", "SO2", "TOUT")
+matrizSE <- cor(cbind(datosSE$CO,datosSE$NO2,datosSE$O3,datosSE$PM10,datosSE$SO2,datosSE$TOUT))  # cbind combina columnas
+rownames(matrizSE) <- varsSE
+colnames(matrizSE) <- varsSE
+
+pal <- colorRampPalette(brewer.pal(9, "YlOrRd"))(20)
+
+heatmap(
+  matrizSE,
+  Rowv = NA,              # No reordena las filas automáticamente
+  Colv = NA,              # No reordena las columnas automáticamente
+  col = pal,  # Paleta de colores
+  scale = "none",         # No normaliza los valores
+  main = "Heatmap de correlaciones en SE",   # Título
+  xlab = "Variables",            # Etiqueta eje X
+  ylab = "Observaciones",        # Etiqueta eje Y
+  margins = c(6, 8),             # Espacio para etiquetas
+  cexRow = 0.8,                  # Tamaño de etiquetas de filas
+  cexCol = 0.8,                  # Tamaño de etiquetas de columnas
+  keep.dendro = FALSE            # No dibujar dendrograma
+)
+```
+#CE
+```{r}
+library(RColorBrewer)
+varsCE <- c("CO", "NO2", "O3", "PM10", "SO2", "TOUT")
+matrizCE <- cor(cbind(datosCE$CO,datosCE$NO2,datosCE$O3,datosCE$PM10,datosCE$SO2,datosCE$TOUT))  # cbind combina columnas
+rownames(matrizCE) <- varsCE
+colnames(matrizCE) <- varsCE
+
+pal <- colorRampPalette(brewer.pal(9, "YlOrRd"))(20)
+
+heatmap(
+  matrizCE,
+  Rowv = NA,              # No reordena las filas automáticamente
+  Colv = NA,              # No reordena las columnas automáticamente
+  col = pal,  # Paleta de colores
+  scale = "none",         # No normaliza los valores
+  main = "Heatmap de correlaciones en CE",   # Título
+  xlab = "Variables",            # Etiqueta eje X
+  ylab = "ObCErvaciones",        # Etiqueta eje Y
+  margins = c(6, 8),             # Espacio para etiquetas
+  cexRow = 0.8,                  # Tamaño de etiquetas de filas
+  cexCol = 0.8,                  # Tamaño de etiquetas de columnas
+  keep.dendro = FALSE            # No dibujar dendrograma
+)
+```
+#SO2
+```{r}
+library(RColorBrewer)
+varsSO2 <- c("CO", "NO2", "O3", "PM10", "SO2", "TOUT")
+matrizSO2 <- cor(cbind(datosSO2$CO,datosSO2$NO2,datosSO2$O3,datosSO2$PM10,datosSO2$SO2,datosSO2$TOUT))  # cbind combina columnas
+rownames(matrizSO2) <- varsSO2
+colnames(matrizSO2) <- varsSO2
+
+pal <- colorRampPalette(brewer.pal(9, "YlOrRd"))(20)
+
+heatmap(
+  matrizSO2,
+  Rowv = NA,              # No reordena las filas automáticamente
+  Colv = NA,              # No reordena las columnas automáticamente
+  col = pal,  # Paleta de colores
+  scale = "none",         # No normaliza los valores
+  main = "Heatmap de correlaciones en SO2",   # Título
+  xlab = "Variables",            # Etiqueta eje X
+  ylab = "Observaciones",        # Etiqueta eje Y
+  margins = c(6, 8),             # Espacio para etiquetas
+  cexRow = 0.8,                  # Tamaño de etiquetas de filas
+  cexCol = 0.8,                  # Tamaño de etiquetas de columnas
+  keep.dendro = FALSE            # No dibujar dendrograma
+)
+```
+#SUR
+```{r}
+library(RColorBrewer)
+varsSUR <- c("CO", "NO2", "O3", "PM10", "SO2", "TOUT")
+matrizSUR <- cor(cbind(datosSUR$CO,datosSUR$NO2,datosSUR$O3,datosSUR$PM10,datosSUR$SO2,datosSUR$TOUT))  # cbind combina columnas
+rownames(matrizSUR) <- varsSUR
+colnames(matrizSUR) <- varsSUR
+
+pal <- colorRampPalette(brewer.pal(9, "YlOrRd"))(20)
+
+heatmap(
+  matrizSUR,
+  Rowv = NA,              # No reordena las filas automáticamente
+  Colv = NA,              # No reordena las columnas automáticamente
+  col = pal,  # Paleta de colores
+  scale = "none",         # No normaliza los valores
+  main = "Heatmap de correlaciones en SUR",   # Título
+  xlab = "Variables",            # Etiqueta eje X
+  ylab = "Observaciones",        # Etiqueta eje Y
+  margins = c(6, 8),             # Espacio para etiquetas
+  cexRow = 0.8,                  # Tamaño de etiquetas de filas
+  cexCol = 0.8,                  # Tamaño de etiquetas de columnas
+  keep.dendro = FALSE            # No dibujar dendrograma
+)
+```
+
+
+
+
