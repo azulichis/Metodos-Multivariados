@@ -1,0 +1,459 @@
+
+```{r setup, include=FALSE}
+library(readxl)
+datosSE <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 1) #subiendo archivo a R
+```
+
+```{r setup, include=FALSE}
+library(readxl)
+datosCE <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 2) #subiendo archivo a R
+```
+
+```{r setup, include=FALSE}
+library(readxl)
+datosSO2 <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 3) #subiendo archivo a R
+```
+
+```{r setup, include=FALSE}
+library(readxl)
+datosSUR <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 4) #subiendo archivo a R
+```
+
+#Variables categoricas
+#SE
+```{r}
+datosSE$day <- as.Date(datosSE$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosSE$mes <- format(datosSE$day, "%m")   # mes en número
+datosSE$año <- format(datosSE$day, "%Y")   # año
+datosSE$mes_nombre <- format(datosSE$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosSE %>%
+  group_by(mes, año) %>%
+  summarise(promedio_CO = mean(CO, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_CO)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de CO por mes", x = "Mes", y = "Promedio CO")
+```
+```{r}
+datosSE$day <- as.Date(datosSE$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosSE$mes <- format(datosSE$day, "%m")   # mes en número
+datosSE$año <- format(datosSE$day, "%Y")   # año
+datosSE$mes_nombre <- format(datosSE$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosSE %>%
+  group_by(mes, año) %>%
+  summarise(promedio_NO2 = mean(NO2, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_NO2)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de NO2 por mes", x = "Mes", y = "Promedio NO2")
+```
+```{r}
+datosSE$day <- as.Date(datosSE$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosSE$mes <- format(datosSE$day, "%m")   # mes en número
+datosSE$año <- format(datosSE$day, "%Y")   # año
+datosSE$mes_nombre <- format(datosSE$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosSE %>%
+  group_by(mes, año) %>%
+  summarise(promedio_O3 = mean(O3, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_O3)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de O3 por mes", x = "Mes", y = "Promedio O3")
+```
+```{r}
+datosSE$day <- as.Date(datosSE$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosSE$mes <- format(datosSE$day, "%m")   # mes en número
+datosSE$año <- format(datosSE$day, "%Y")   # año
+datosSE$mes_nombre <- format(datosSE$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosSE %>%
+  group_by(mes, año) %>%
+  summarise(promedio_PM10 = mean(PM10, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_PM10)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de PM10 por mes", x = "Mes", y = "Promedio PM10")
+```
+```{r}
+datosSE$day <- as.Date(datosSE$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosSE$mes <- format(datosSE$day, "%m")   # mes en número
+datosSE$año <- format(datosSE$day, "%Y")   # año
+datosSE$mes_nombre <- format(datosSE$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosSE %>%
+  group_by(mes, año) %>%
+  summarise(promedio_SO2 = mean(SO2, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_SO2)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de SO2 por mes", x = "Mes", y = "Promedio SO2")
+```
+```{r}
+datosSE$day <- as.Date(datosSE$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosSE$mes <- format(datosSE$day, "%m")   # mes en número
+datosSE$año <- format(datosSE$day, "%Y")   # año
+datosSE$mes_nombre <- format(datosSE$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosSE %>%
+  group_by(mes, año) %>%
+  summarise(promedio_TOUT = mean(TOUT, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_TOUT)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de TOUT por mes", x = "Mes", y = "Promedio TOUT")
+```
+
+#CE
+```{r}
+datosCE$day <- as.Date(datosCE$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosCE$mes <- format(datosCE$day, "%m")   # mes en número
+datosCE$año <- format(datosCE$day, "%Y")   # año
+datosCE$mes_nombre <- format(datosCE$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosCE %>%
+  group_by(mes, año) %>%
+  summarise(promedio_CO = mean(CO, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_CO)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de CO por mes", x = "Mes", y = "Promedio CO")
+```
+```{r}
+datosCE$day <- as.Date(datosCE$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosCE$mes <- format(datosCE$day, "%m")   # mes en número
+datosCE$año <- format(datosCE$day, "%Y")   # año
+datosCE$mes_nombre <- format(datosCE$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosCE %>%
+  group_by(mes, año) %>%
+  summarise(promedio_NO2 = mean(NO2, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_NO2)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de NO2 por mes", x = "Mes", y = "Promedio NO2")
+```
+```{r}
+datosCE$day <- as.Date(datosCE$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosCE$mes <- format(datosCE$day, "%m")   # mes en número
+datosCE$año <- format(datosCE$day, "%Y")   # año
+datosCE$mes_nombre <- format(datosCE$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosCE %>%
+  group_by(mes, año) %>%
+  summarise(promedio_O3 = mean(O3, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_O3)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de O3 por mes", x = "Mes", y = "Promedio O3")
+```
+```{r}
+datosCE$day <- as.Date(datosCE$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosCE$mes <- format(datosCE$day, "%m")   # mes en número
+datosCE$año <- format(datosCE$day, "%Y")   # año
+datosCE$mes_nombre <- format(datosCE$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosCE %>%
+  group_by(mes, año) %>%
+  summarise(promedio_PM10 = mean(PM10, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_PM10)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de PM10 por mes", x = "Mes", y = "Promedio PM10")
+```
+```{r}
+datosCE$day <- as.Date(datosCE$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosCE$mes <- format(datosCE$day, "%m")   # mes en número
+datosCE$año <- format(datosCE$day, "%Y")   # año
+datosCE$mes_nombre <- format(datosCE$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosCE %>%
+  group_by(mes, año) %>%
+  summarise(promedio_SO2 = mean(SO2, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_SO2)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de SO2 por mes", x = "Mes", y = "Promedio SO2")
+```
+```{r}
+datosCE$day <- as.Date(datosCE$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosCE$mes <- format(datosCE$day, "%m")   # mes en número
+datosCE$año <- format(datosCE$day, "%Y")   # año
+datosCE$mes_nombre <- format(datosCE$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosCE %>%
+  group_by(mes, año) %>%
+  summarise(promedio_TOUT = mean(TOUT, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_TOUT)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de TOUT por mes", x = "Mes", y = "Promedio TOUT")
+```
+#SO2
+```{r}
+datosSO2$day <- as.Date(datosSO2$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosSO2$mes <- format(datosSO2$day, "%m")   # mes en número
+datosSO2$año <- format(datosSO2$day, "%Y")   # año
+datosSO2$mes_nombre <- format(datosSO2$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosSO2 %>%
+  group_by(mes, año) %>%
+  summarise(promedio_CO = mean(CO, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_CO)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de CO por mes", x = "Mes", y = "Promedio CO")
+```
+```{r}
+datosSO2$day <- as.Date(datosSO2$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosSO2$mes <- format(datosSO2$day, "%m")   # mes en número
+datosSO2$año <- format(datosSO2$day, "%Y")   # año
+datosSO2$mes_nombre <- format(datosSO2$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosSO2 %>%
+  group_by(mes, año) %>%
+  summarise(promedio_NO2 = mean(NO2, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_NO2)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de NO2 por mes", x = "Mes", y = "Promedio NO2")
+```
+```{r}
+datosSO2$day <- as.Date(datosSO2$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosSO2$mes <- format(datosSO2$day, "%m")   # mes en número
+datosSO2$año <- format(datosSO2$day, "%Y")   # año
+datosSO2$mes_nombre <- format(datosSO2$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosSO2 %>%
+  group_by(mes, año) %>%
+  summarise(promedio_O3 = mean(O3, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_O3)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de O3 por mes", x = "Mes", y = "Promedio O3")
+```
+```{r}
+datosSO2$day <- as.Date(datosSO2$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosSO2$mes <- format(datosSO2$day, "%m")   # mes en número
+datosSO2$año <- format(datosSO2$day, "%Y")   # año
+datosSO2$mes_nombre <- format(datosSO2$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosSO2 %>%
+  group_by(mes, año) %>%
+  summarise(promedio_PM10 = mean(PM10, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_PM10)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de PM10 por mes", x = "Mes", y = "Promedio PM10")
+```
+```{r}
+datosSO2$day <- as.Date(datosSO2$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosSO2$mes <- format(datosSO2$day, "%m")   # mes en número
+datosSO2$año <- format(datosSO2$day, "%Y")   # año
+datosSO2$mes_nombre <- format(datosSO2$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosSO2 %>%
+  group_by(mes, año) %>%
+  summarise(promedio_SO2 = mean(SO2, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_SO2)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de SO2 por mes", x = "Mes", y = "Promedio SO2")
+```
+```{r}
+datosSO2$day <- as.Date(datosSO2$day, format = "%d/%m/%Y")
+```
+
+```{r}
+datosSO2$mes <- format(datosSO2$day, "%m")   # mes en número
+datosSO2$año <- format(datosSO2$day, "%Y")   # año
+datosSO2$mes_nombre <- format(datosSO2$day, "%b") # nombre abreviado del mes (Ene, Feb, ...)
+```
+
+```{r}
+library(dplyr)
+
+frecuencia_mes <- datosSO2 %>%
+  group_by(mes, año) %>%
+  summarise(promedio_TOUT = mean(TOUT, na.rm = TRUE),
+            n = n(),
+            .groups = "drop")  # evita que quede agrupado
+
+ggplot(frecuencia_mes, aes(x = mes, y = promedio_TOUT)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  facet_wrap(~año) +
+  labs(title = "Promedio de TOUT por mes", x = "Mes", y = "Promedio TOUT")
+```
+
