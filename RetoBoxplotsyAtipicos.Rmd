@@ -1,0 +1,545 @@
+
+```{r setup, include=FALSE}
+library(readxl)
+datosSE <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 1) #subiendo archivo a R
+```
+
+```{r setup, include=FALSE}
+library(readxl)
+datosCE <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 2) #subiendo archivo a R
+```
+
+```{r setup, include=FALSE}
+library(readxl)
+datosSO2 <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 3) #subiendo archivo a R
+```
+
+```{r setup, include=FALSE}
+library(readxl)
+datosSUR <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 4) #subiendo archivo a R
+```
+
+
+#Boxplots
+#SE
+```{r}
+boxplot(datosSE$CO,
+        main = "Boxplot de CO - SE",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSE$CO, 0.25)
+Q3 <- quantile(datosSE$CO, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSE$CO[datosSE$CO < limite_inferior | datosSE$CO > limite_superior]
+outliers
+```
+
+
+```{r}
+boxplot(datosSE$NO2,
+        main = "Boxplot de NO2 - SE",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSE$NO2, 0.25)
+Q3 <- quantile(datosSE$NO2, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSE$CO[datosSE$NO2 < limite_inferior | datosSE$NO2 > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosSE$O3,
+        main = "Boxplot de O3 - SE",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSE$O3, 0.25)
+Q3 <- quantile(datosSE$O3, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSE$CO[datosSE$O3 < limite_inferior | datosSE$O3 > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosSE$PM10,
+        main = "Boxplot de PM10 - SE",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSE$PM10, 0.25)
+Q3 <- quantile(datosSE$PM10, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSE$PM10[datosSE$PM10 < limite_inferior | datosSE$PM10 > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosSE$SO2,
+        main = "Boxplot de SO2 - SE",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSE$SO2, 0.25)
+Q3 <- quantile(datosSE$SO2, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSE$SO2[datosSE$SO2 < limite_inferior | datosSE$SO2 > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosSE$TOUT,
+        main = "Boxplot de TOUT - SE",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSE$TOUT, 0.25)
+Q3 <- quantile(datosSE$TOUT, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSE$TOUT[datosSE$TOUT < limite_inferior | datosSE$TOUT > limite_superior]
+outliers
+```
+
+#CE 
+```{r}
+boxplot(datosCE$CO,
+        main = "Boxplot de CO - CE",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+
+```{r}
+Q1 <- quantile(datosCE$CO, 0.25)
+Q3 <- quantile(datosCE$CO, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosCE$CO[datosCE$CO < limite_inferior | datosCE$CO > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosCE$NO2,
+        main = "Boxplot de NO2 - CE",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+
+```{r}
+Q1 <- quantile(datosCE$NO2, 0.25)
+Q3 <- quantile(datosCE$NO2, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosCE$NO2[datosCE$NO2 < limite_inferior | datosCE$NO2 > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosCE$O3,
+        main = "Boxplot de O3 - CE",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosCE$O3, 0.25)
+Q3 <- quantile(datosCE$O3, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosCE$O3[datosCE$O3 < limite_inferior | datosCE$O3 > limite_superior]
+outliers
+```
+
+
+```{r}
+boxplot(datosCE$PM10,
+        main = "Boxplot de PM10 - CE",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosCE$PM10, 0.25)
+Q3 <- quantile(datosCE$PM10, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosCE$PM10[datosCE$PM10 < limite_inferior | datosCE$PM10 > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosCE$SO2,
+        main = "Boxplot de SO2 - CE",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosCE$SO2, 0.25)
+Q3 <- quantile(datosCE$SO2, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosCE$SO2[datosCE$SO2 < limite_inferior | datosCE$SO2 > limite_superior]
+outliers
+```
+
+
+```{r}
+boxplot(datosCE$TOUT,
+        main = "Boxplot de TOUT - CE",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosCE$TOUT, 0.25)
+Q3 <- quantile(datosCE$TOUT, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosCE$TOUT[datosCE$TOUT < limite_inferior | datosCE$TOUT > limite_superior]
+outliers
+```
+
+#SO2
+```{r}
+boxplot(datosSO2$CO,
+        main = "Boxplot de CO - SO2",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+
+```{r}
+Q1 <- quantile(datosSO2$CO, 0.25)
+Q3 <- quantile(datosSO2$CO, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSO2$CO[datosSO2$CO < limite_inferior | datosSO2$CO > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosSO2$NO2,
+        main = "Boxplot de NO2 - SO2",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSO2$NO2, 0.25)
+Q3 <- quantile(datosSO2$NO2, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSO2$NO2[datosSO2$NO2 < limite_inferior | datosSO2$NO2 > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosSO2$O3,
+        main = "Boxplot de O3 - SO2",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+
+```{r}
+Q1 <- quantile(datosSO2$O3, 0.25)
+Q3 <- quantile(datosSO2$O3, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSO2$O3[datosSO2$O3 < limite_inferior | datosSO2$O3 > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosSO2$PM10,
+        main = "Boxplot de PM10 - SO2",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSO2$PM10, 0.25)
+Q3 <- quantile(datosSO2$PM10, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSO2$PM10[datosSO2$PM10 < limite_inferior | datosSO2$PM10 > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosSO2$SO2,
+        main = "Boxplot de SO2 - SO2",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSO2$SO2, 0.25)
+Q3 <- quantile(datosSO2$SO2, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSO2$SO2[datosSO2$SO2 < limite_inferior | datosSO2$SO2 > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosSO2$TOUT,
+        main = "Boxplot de TOUT - SO2",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSO2$TOUT, 0.25)
+Q3 <- quantile(datosSO2$TOUT, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSO2$TOUT[datosSO2$TOUT < limite_inferior | datosSO2$TOUT > limite_superior]
+outliers
+```
+
+#SUR
+```{r}
+boxplot(datosSUR$CO,
+        main = "Boxplot de CO - SUR",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSUR$CO, 0.25)
+Q3 <- quantile(datosSUR$CO, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSUR$CO[datosSUR$CO < limite_inferior | datosSUR$CO > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosSUR$NO2,
+        main = "Boxplot de NO2 - SUR",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSUR$NO2, 0.25)
+Q3 <- quantile(datosSUR$NO2, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSUR$NO2[datosSUR$NO2 < limite_inferior | datosSUR$NO2 > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosSUR$O3,
+        main = "Boxplot de O3 - SUR",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSUR$O3, 0.25)
+Q3 <- quantile(datosSUR$O3, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSUR$O3[datosSUR$O3 < limite_inferior | datosSUR$O3 > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosSUR$PM10,
+        main = "Boxplot de PM10 - SUR",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSUR$PM10, 0.25)
+Q3 <- quantile(datosSUR$PM10, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSUR$PM10[datosSUR$PM10 < limite_inferior | datosSUR$PM10 > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosSUR$SO2,
+        main = "Boxplot de SO2 - SUR",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSUR$SO2, 0.25)
+Q3 <- quantile(datosSUR$SO2, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSUR$SO2[datosSUR$SO2 < limite_inferior | datosSUR$SO2 > limite_superior]
+outliers
+```
+
+```{r}
+boxplot(datosSUR$TOUT,
+        main = "Boxplot de TOUT - SUR",
+        ylab = "Valores",
+        col = "red",
+        border = "blue")
+```
+```{r}
+Q1 <- quantile(datosSUR$TOUT, 0.25)
+Q3 <- quantile(datosSUR$TOUT, 0.75)
+IQR_val <- Q3 - Q1
+Q1
+Q3
+
+limite_inferior <- Q1 - 1.5 * IQR_val
+limite_superior <- Q3 + 1.5 * IQR_val
+
+outliers <- datosSUR$TOUT[datosSUR$TOUT < limite_inferior | datosSUR$TOUT > limite_superior]
+outliers
+```
+
+
+
+
+
+
+
+
