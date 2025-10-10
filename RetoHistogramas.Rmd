@@ -1,0 +1,265 @@
+
+```{r setup, include=FALSE}
+library(readxl)
+datosSE <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 1) #subiendo archivo a R
+```
+
+```{r setup, include=FALSE}
+library(readxl)
+datosCE <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 2) #subiendo archivo a R
+```
+
+```{r setup, include=FALSE}
+library(readxl)
+datosSO2 <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 3) #subiendo archivo a R
+```
+
+```{r setup, include=FALSE}
+library(readxl)
+datosSUR <- read_excel("~/Desktop/Datos reducidos diarios 2023-2024.xlsx", sheet = 4) #subiendo archivo a R
+```
+
+#Histogramas
+#SE
+```{r}
+hist(datosSE$CO,
+     main = "Histograma de CO - SE",   # Título
+     xlab = "Valores de CO",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+```{r}
+hist(datosSE$NO2,
+     main = "Histograma de NO2 - SE",   # Título
+     xlab = "Valores de NO2",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+
+```{r}
+hist(datosSE$O3,
+     main = "Histograma de O3 - SE",   # Título
+     xlab = "Valores de O3",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+
+```{r}
+hist(datosSE$PM10,
+     main = "Histograma de PM10 - SE",   # Título
+     xlab = "Valores de PM10",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+
+```{r}
+hist(datosSE$SO2,
+     main = "Histograma de SO2 - SE",   # Título
+     xlab = "Valores de SO2",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+
+```{r}
+hist(datosSE$TOUT,
+     main = "Histograma de TOUT - SE",   # Título
+     xlab = "Valores de TOUT",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+#CE
+```{r}
+hist(datosCE$CO,
+     main = "Histograma de CO - CE",   # Título
+     xlab = "Valores de CO",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+
+```{r}
+hist(datosCE$NO2,
+     main = "Histograma de NO2 - CE",   # Título
+     xlab = "Valores de NO2",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+
+```{r}
+hist(datosCE$O3,
+     main = "Histograma de O3 - CE",   # Título
+     xlab = "Valores de O3",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+```{r}
+hist(datosCE$PM10,
+     main = "Histograma de PM10 - CE",   # Título
+     xlab = "Valores de PM10",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+```{r}
+hist(datosCE$SO2,
+     main = "Histograma de SO2 - CE",   # Título
+     xlab = "Valores de SO2",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+
+```{r}
+hist(datosCE$TOUT,
+     main = "Histograma de TOUT - CE",   # Título
+     xlab = "Valores de TOUT",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+#SO2
+```{r}
+hist(datosSO2$CO,
+     main = "Histograma de CO - SO2",   # Título
+     xlab = "Valores de CO",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+
+```{r}
+hist(datosSO2$NO2,
+     main = "Histograma de NO2 - SO2",   # Título
+     xlab = "Valores de NO2",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+```{r}
+hist(datosSO2$O3,
+     main = "Histograma de O3 - SO2",   # Título
+     xlab = "Valores de O3",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+
+```{r}
+hist(datosSO2$PM10,
+     main = "Histograma de PM10 - SO2",   # Título
+     xlab = "Valores de PM10",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+```{r}
+hist(datosSO2$SO2,
+     main = "Histograma de SO2 - SO2",   # Título
+     xlab = "Valores de SO2",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+```{r}
+hist(datosSO2$TOUT,
+     main = "Histograma de TOUT - SO2",   # Título
+     xlab = "Valores de TOUT",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+#SUR
+```{r}
+hist(datosSUR$CO,
+     main = "Histograma de CO - SUR",   # Título
+     xlab = "Valores de CO",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+
+```{r}
+hist(datosSUR$NO2,
+     main = "Histograma de NO2 - SUR",   # Título
+     xlab = "Valores de NO2",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+
+```{r}
+hist(datosSUR$O3,
+     main = "Histograma de O3 - SUR",   # Título
+     xlab = "Valores de O3",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+```{r}
+hist(datosSUR$PM10,
+     main = "Histograma de PM10 - SUR",   # Título
+     xlab = "Valores de PM10",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+```{r}
+hist(datosSUR$SO2,
+     main = "Histograma de SO2 - SUR",   # Título
+     xlab = "Valores de SO2",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+
+```{r}
+hist(datosSUR$TOUT,
+     main = "Histograma de TOUT - SUR",   # Título
+     xlab = "Valores de TOUT",      # Etiqueta del eje X
+     ylab = "Frecuencia",        # Etiqueta del eje Y
+     col = "lightblue",          # Color de las barras
+     border = "black")           # Color del borde
+
+```
+
+
+
+
+
+
+
+
+
+
+
