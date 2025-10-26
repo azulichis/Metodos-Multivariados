@@ -1,0 +1,2216 @@
+---
+title: "AnalisisProyecto"
+author: "Azul Fernanda Paniagua Bucio"
+date: "2025-10-13"
+output: html_document
+---
+# Prueba 
+
+
+```{r}
+library(readxl)
+library(dplyr)
+library(psych)     
+library(corrplot)  
+library(GGally)    
+library(MVN)       
+library(lmtest)   
+library(car)      
+library(moments) 
+library(ggplot2)
+tabla_SE_2023 <- read_excel("Datos 2023.xlsx", sheet = "SE")
+
+tabla_SE_2023
+```
+
+```{r}
+vars <- c("O3", "PM10", "PM2.5", "SO2", "TOUT")
+data <- tabla_SE_2023 %>% select(all_of(vars))
+```
+
+```{r}
+summary(data)
+sapply(data, function(x) sum(is.na(x)))  
+```
+```{r}
+
+cor(data, use = "pairwise.complete.obs")  
+cov(data, use = "pairwise.complete.obs")     
+
+
+corrplot(cor(data, use = "pairwise.complete.obs"), method = "color")
+
+```
+
+## Análisis factorial
+
+```{r}
+library(psych)
+
+# Selecciona solo las variables explicativas
+X <- data %>% select(O3, PM10, PM2.5, SO2)
+
+# Análisis factorial o PCA
+fa_result <- fa(X, nfactors = 2, rotate = "varimax", fm = "ml")  
+print(fa_result)
+
+# Si prefieres PCA
+pca_result <- principal(X, nfactors = 2, rotate = "varimax")
+print(pca_result)
+
+```
+
+El factor 1 está dominado por PM1 (0.92) y PM2.5 (0.86), por lo que esto representa un factor de contaminación por partículas.
+
+Para el factor 2, ninguna variable carga fuertemente ya que todas son menores a 0.4, así que no hay evidencia clara de un segundo factor fuerte.
+
+Un solo factor principal explica la mayor parte de la varianza. Ese factor está fuertemente asociado con PM10 y PM2.5, es decir, ambas variables se comportan de manera muy similar.
+
+Para el modelo, se podría usar una de ellas o un factor combinado. 
+
+
+Creamos el factor y dejamos las otras variables tal como están
+
+
+```{r}
+
+library(psych)
+
+# Seleccionamos las dos variables
+PM_data <- data %>% select(PM10, PM2.5)
+
+# Extraemos el primer componente/factor (el que agrupa ambas)
+fa_PM <- fa(PM_data, nfactors = 1, fm = "ml")
+print(fa_PM)
+
+# Crear el score del factor (representa la contaminación particulada)
+data$Factor_PM <- as.vector(fa_PM$scores)  
+
+```
+
+
+Para las cargas factoriales tenemos 0.82 en PM10 y PM2.5
+
+La proporción de varianza explicada es el 68% de la varianza conjunta. La correlación del factor con las variables originales es de aproximadamente 0.9 
+
+Es por esto que crear un solo factor latente es estadísticamente válido.
+
+
+```{r}
+# Modelo de regresión con el nuevo factor
+modelo_factor <- lm(TOUT ~ Factor_PM + O3 + SO2, data = data)
+summary(modelo_factor)
+
+# Validar multicolinealidad
+library(car)
+vif(modelo_factor)
+
+# Diagnóstico del modelo
+par(mfrow=c(2,2))
+plot(modelo_factor)
+par(mfrow=c(1,1))
+```
+
+El R ajustado es 0.3665, por lo que el modelo explica alrededor del 37% de la variación en TOUT. Esto es bueno para datos ambientales, donde la temperatura depende de muchos otros factores.
+
+El gráfico de residuals vs fitted nos muestra que los puntos están dispersos sin un patrón fuerte, por lo que la linealidad es razonable. Hay algo más de dispersión en valores bajos y altos, por lo que hay una posible ligera heterocedasticidad, pero no es grave.
+
+En el gráfico de QQ residuals, los puntos siguen bastante bien la línea diagonal, por lo que los residuos son aproximadamente normales.
+
+
+Hay pequeñas desviaciones en las colas, lo cual es esperable en datos ambientales
+
+La scale-location muestra una nube más o menos homogénea, sin tendencia clara. Hay una varianza (homocedasticidad aceptable)
+
+En residuals vs leverage vemos que hay pocos puntos con alto leverage (38,77,62), pero ninguno excede la distancia de Cook, por lo que no hay observaciones influyentes que distorsionen el modelo.
+
+
+## Si no hicieramos factores
+
+```{r}
+# Modelo de regresión con el nuevo factor
+modelo_factor <- lm(TOUT ~ PM2.5 + O3 + SO2, data = data)
+summary(modelo_factor)
+
+# Validar multicolinealidad
+library(car)
+vif(modelo_factor)
+
+# Diagnóstico del modelo
+par(mfrow=c(2,2))
+plot(modelo_factor)
+par(mfrow=c(1,1))
+```
+
+Si el modelo es mejor cuando los dos están solitos? mejor que si solo usaramos una variable o si usáramos análisis factorial
+
+# Nuevo dataset
+
+## Estación SE
+
+```{r}
+library(readxl)
+library(dplyr)
+library(psych)     
+library(corrplot)  
+library(GGally)    
+library(MVN)       
+library(lmtest)   
+library(car)      
+library(moments) 
+library(ggplot2)
+tabla_2023_SE <- read_excel("Datos reducidos 2023.xlsx", sheet = "SE")
+
+tabla_2023_SE
+
+
+vars_SE <- c("NO2","O3", "PM10", "PM2.5", "SO2", "TOUT")
+data_SE <- tabla_2023_SE %>% select(all_of(vars_SE))
+```
+
+### Correlación
+
+```{r}
+
+summary(data_SE)
+sapply(data_SE, function(x) sum(is.na(x)))  
+```
+
+```{r}
+
+cor(data_SE, use = "pairwise.complete.obs")  
+cov(data_SE, use = "pairwise.complete.obs")     
+
+
+corrplot(cor(data_SE, use = "pairwise.complete.obs"), method = "color")
+```
+
+
+### Análisis factorial
+
+```{r}
+library(psych)
+
+# Selecciona solo las variables explicativas
+X_SE <- data_SE %>% select(NO2, O3, PM10, PM2.5, SO2)
+
+# Análisis factorial
+fa_result_SE <- fa(X_SE, nfactors = 2, rotate = "varimax", fm = "ml")  
+print(fa_result_SE)
+
+# O PCA
+pca_result_SE <- principal(X_SE, nfactors = 2, rotate = "varimax")
+print(pca_result_SE)
+```
+
+
+El factor 1 está dominado por PM1o (0.98), PM2.5 (0.69), NO2 (0.70), pero solo usaríamos a PM10 y PM2.5, por lo que esto representa un factor de contaminación por partículas.
+
+Para el factor 2, ninguna variable carga fuertemente ya que todas son menores a 0.45, así que no hay evidencia clara de un segundo factor fuerte.
+
+Un solo factor principal explica la mayor parte de la varianza. Ese factor está fuertemente asociado con PM10 y PM2.5, es decir, ambas variables se comportan de manera muy similar.
+
+Para el modelo, se podría usar una de ellas o un factor combinado. 
+
+
+Creamos el factor y dejamos las otras variables tal como están
+
+```{r}
+
+library(psych)
+
+# Seleccionamos las dos variables
+PM_data_SE <- data_SE %>% select(PM10, PM2.5)
+
+# Extraemos el primer componente/factor (el que agrupa ambas)
+fa_PM_SE <- fa(PM_data_SE, nfactors = 1, fm = "ml")
+print(fa_PM_SE)
+
+# Crear el score del factor (representa la contaminación particulada)
+data_SE$Factor_PM_SE <- as.vector(fa_PM_SE$scores)  
+```
+
+
+Para las cargas factoriales tenemos 0.82 en PM10 y PM2.5
+
+La proporción de varianza explicada es el 68% de la varianza conjunta. La correlación del factor con las variables originales es de aproximadamente 0.9 
+
+Es por esto que crear un solo factor latente es estadísticamente válido.
+
+
+```{r}
+# Modelo de regresión con el nuevo factor
+modelo_factor_SE <- lm(TOUT ~ Factor_PM_SE + O3 + SO2 + NO2, data = data_SE)
+summary(modelo_factor_SE)
+
+# Validar multicolinealidad
+library(car)
+vif(modelo_factor_SE)
+
+# Diagnóstico del modelo
+par(mfrow=c(2,2))
+plot(modelo_factor_SE)
+par(mfrow=c(1,1))
+```
+
+El R ajustado es 0.4592, por lo que el modelo explica alrededor del 46% de la variación en TOUT. Esto es bueno para datos ambientales, donde la temperatura depende de muchos otros factores.
+
+El gráfico de residuals vs fitted nos muestra que los puntos están dispersos sin un patrón fuerte, por lo que la linealidad es razonable. Hay algo más de dispersión en valores bajos y altos, por lo que hay una posible ligera heterocedasticidad, pero no es grave.
+
+En el gráfico de QQ residuals, los puntos siguen bastante bien la línea diagonal, por lo que los residuos son aproximadamente normales.
+
+
+Hay pequeñas desviaciones en las colas, lo cual es esperable en datos ambientales
+
+La scale-location muestra una nube más o menos homogénea, sin tendencia clara. Hay una varianza (homocedasticidad aceptable)
+
+En residuals vs leverage vemos que hay pocos puntos con alto leverage (11,77,62), pero ninguno excede la distancia de Cook, por lo que no hay observaciones influyentes que distorsionen el modelo.
+
+
+
+```{r}
+
+# Cargar librería
+library(lmtest)
+
+# Supón que tu modelo se llama "modelo"
+dwtest(modelo_factor_SE)
+
+```
+
+
+
+### Si no hicieramos factores
+
+```{r}
+# Modelo de regresión con el nuevo factor
+modelo_factor_SE <- lm(TOUT ~ PM10 + O3 + SO2 + NO2, data = data_SE)
+summary(modelo_factor_SE)
+
+# Validar multicolinealidad
+library(car)
+vif(modelo_factor_SE)
+
+# Diagnóstico del modelo
+par(mfrow=c(2,2))
+plot(modelo_factor_SE)
+par(mfrow=c(1,1))
+```
+
+```{r}
+
+# Cargar librería
+library(lmtest)
+
+# Supón que tu modelo se llama "modelo"
+dwtest(modelo_factor_SE)
+
+```
+
+## Estación CE
+
+```{r}
+library(readxl)
+library(dplyr)
+library(psych)     
+library(corrplot)  
+library(GGally)    
+library(MVN)       
+library(lmtest)   
+library(car)      
+library(moments) 
+library(ggplot2)
+tabla_2023_CE <- read_excel("Datos reducidos 2023.xlsx", sheet = "CE")
+
+tabla_2023_CE
+
+
+vars_CE <- c("NO2","O3", "PM10", "PM2.5", "SO2", "TOUT")
+data_CE <- tabla_2023_CE %>% select(all_of(vars_CE))
+```
+
+### Correlación
+
+```{r}
+
+summary(data_CE)
+sapply(data_CE, function(x) sum(is.na(x)))  
+```
+
+
+```{r}
+
+cor(data_CE, use = "pairwise.complete.obs")  
+cov(data_CE, use = "pairwise.complete.obs")     
+
+
+corrplot(cor(data_CE, use = "pairwise.complete.obs"), method = "color")
+```
+
+
+### Análisis Factorial
+
+```{r}
+library(psych)
+
+# Selecciona solo las variables explicativas
+X_CE <- data_CE %>% select(NO2, O3, PM10, PM2.5, SO2)
+
+# Análisis factorial o PCA
+fa_result_CE <- fa(X_CE, nfactors = 2, rotate = "varimax", fm = "ml")  
+print(fa_result_CE)
+
+# Si prefieres PCA
+pca_result_CE <- principal(X_CE, nfactors = 2, rotate = "varimax")
+print(pca_result_CE)
+```
+
+
+El factor 1 está dominado por PM10 (0.90), PM2.5 (0.82), NO2 (0.84), pero solo usaríamos a PM10 y PM2.5, por lo que esto representa un factor de contaminación por partículas.
+
+Para el factor 2, ninguna variable carga fuertemente ya que todas son menores a 0.45 (solo O3) así que no hay evidencia clara de un segundo factor fuerte.
+
+Un solo factor principal explica la mayor parte de la varianza. Ese factor está fuertemente asociado con PM10 y PM2.5, es decir, ambas variables se comportan de manera muy similar.
+
+Para el modelo, se podría usar una de ellas o un factor combinado. 
+
+
+Creamos el factor y dejamos las otras variables tal como están
+
+```{r}
+
+library(psych)
+
+# Seleccionamos las dos variables
+PM_data_CE <- data_CE %>% select(PM10, PM2.5)
+
+# Extraemos el primer componente/factor (el que agrupa ambas)
+fa_PM_CE <- fa(PM_data_CE, nfactors = 1, fm = "ml")
+print(fa_PM_CE)
+
+# Crear el score del factor (representa la contaminación particulada)
+data_CE$Factor_PM_CE <- as.vector(fa_PM_CE$scores)  
+```
+
+
+Para las cargas factoriales tenemos 0.86 en PM10 y PM2.5
+
+La proporción de varianza explicada es el 74% de la varianza conjunta. La correlación del factor con las variables originales es de aproximadamente 0.92
+
+Es por esto que crear un solo factor latente es estadísticamente válido.
+
+
+```{r}
+# Modelo de regresión con el nuevo factor
+modelo_factor_CE <- lm(TOUT ~ Factor_PM_CE + O3 + SO2 + NO2, data = data_CE)
+summary(modelo_factor_CE)
+
+# Validar multicolinealidad
+library(car)
+vif(modelo_factor_CE)
+
+# Diagnóstico del modelo
+par(mfrow=c(2,2))
+plot(modelo_factor_CE)
+par(mfrow=c(1,1))
+```
+
+
+
+
+El R ajustado es 0.4991, por lo que el modelo explica alrededor del 50% de la variación en TOUT. Esto es bueno para datos ambientales, donde la temperatura depende de muchos otros factores.
+
+El gráfico de residuals vs fitted nos muestra que los puntos están dispersos sin un patrón fuerte, por lo que la linealidad es razonable. Hay algo más de dispersión en valores bajos y altos, por lo que hay una posible ligera heterocedasticidad, pero no es grave.
+
+En el gráfico de QQ residuals, los puntos siguen bastante bien la línea diagonal, por lo que los residuos son aproximadamente normales.
+
+
+Hay pequeñas desviaciones en las colas, lo cual es esperable en datos ambientales
+
+La scale-location muestra una nube más o menos homogénea, sin tendencia clara. Hay una varianza (homocedasticidad aceptable)
+
+En residuals vs leverage vemos que hay pocos puntos con alto leverage (11,32,62), pero ninguno excede la distancia de Cook, por lo que no hay observaciones influyentes que distorsionen el modelo.
+
+
+### Si no hicieramos factores
+
+```{r}
+# Modelo de regresión con el nuevo factor
+modelo_factor_CE <- lm(TOUT ~ PM10 + O3 + SO2 + NO2, data = data_CE)
+summary(modelo_factor_CE)
+
+# Validar multicolinealidad
+library(car)
+vif(modelo_factor_CE)
+
+# Diagnóstico del modelo
+par(mfrow=c(2,2))
+plot(modelo_factor_CE)
+par(mfrow=c(1,1))
+```
+
+
+
+## Estación SO2
+
+```{r}
+library(readxl)
+library(dplyr)
+library(psych)     
+library(corrplot)  
+library(GGally)    
+library(MVN)       
+library(lmtest)   
+library(car)      
+library(moments) 
+library(ggplot2)
+tabla_2023_SO2 <- read_excel("Datos reducidos 2023.xlsx", sheet = "SO2")
+
+tabla_2023_SO2
+
+
+vars_SO2 <- c("NO2","O3", "PM10", "PM2.5", "SO2", "TOUT")
+data_SO2 <- tabla_2023_SO2 %>% select(all_of(vars_SO2))
+```
+
+### Correlación
+
+```{r}
+
+summary(data_SO2)
+sapply(data_SO2, function(x) sum(is.na(x)))  
+```
+
+
+```{r}
+
+cor(data_SO2, use = "pairwise.complete.obs")  
+cov(data_SO2, use = "pairwise.complete.obs")     
+
+
+corrplot(cor(data_SO2, use = "pairwise.complete.obs"), method = "color")
+```
+
+
+
+### Análisis Factorial
+
+```{r}
+library(psych)
+
+# Selecciona solo las variables explicativas
+X_SO2 <- data_SO2 %>% select(NO2, O3, PM10, PM2.5, SO2)
+
+# Análisis factorial o PCA
+fa_result_SO2 <- fa(X_SO2, nfactors = 2, rotate = "varimax", fm = "ml")  
+print(fa_result_SO2)
+
+# Si prefieres PCA
+pca_result_SO2 <- principal(X_SO2, nfactors = 2, rotate = "varimax")
+print(pca_result_SO2)
+```
+
+
+
+El factor 1 está dominado por PM1o (0.98), PM2.5 (0.69), NO2 (0.70), pero solo usaríamos a PM10 y PM2.5, por lo que esto representa un factor de contaminación por partículas.
+
+Para el factor 2, ninguna variable carga fuertemente ya que todas son menores a 0.45, así que no hay evidencia clara de un segundo factor fuerte.
+
+Un solo factor principal explica la mayor parte de la varianza. Ese factor está fuertemente asociado con PM10 y PM2.5, es decir, ambas variables se comportan de manera muy similar.
+
+Para el modelo, se podría usar una de ellas o un factor combinado. 
+
+
+Creamos el factor y dejamos las otras variables tal como están
+
+```{r}
+
+library(psych)
+
+# Seleccionamos las dos variables
+PM_data_SO2 <- data_SO2 %>% select(PM10, PM2.5)
+
+# Extraemos el primer componente/factor (el que agrupa ambas)
+fa_PM_SO2 <- fa(PM_data_SO2, nfactors = 1, fm = "ml")
+print(fa_PM_SO2)
+
+# Crear el score del factor (representa la contaminación particulada)
+data_SO2$Factor_PM_SO2 <- as.vector(fa_PM_SO2$scores)  
+```
+
+
+
+Para las cargas factoriales tenemos 0.86 en PM10 y PM2.5
+
+La proporción de varianza explicada es el 74% de la varianza conjunta. La correlación del factor con las variables originales es de aproximadamente 0.92
+
+Es por esto que crear un solo factor latente es estadísticamente válido.
+
+
+```{r}
+# Modelo de regresión con el nuevo factor
+modelo_factor_SO2 <- lm(TOUT ~ Factor_PM_SO2 + O3 + SO2 + NO2, data = data_SO2)
+summary(modelo_factor_SO2)
+
+# Validar multicolinealidad
+library(car)
+vif(modelo_factor_SO2)
+
+# Diagnóstico del modelo
+par(mfrow=c(2,2))
+plot(modelo_factor_SO2)
+par(mfrow=c(1,1))
+```
+
+
+El R ajustado es 0.4991, por lo que el modelo explica alrededor del 50% de la variación en TOUT. Esto es bueno para datos ambientales, donde la temperatura depende de muchos otros factores.
+
+El gráfico de residuals vs fitted nos muestra que los puntos están dispersos sin un patrón fuerte, por lo que la linealidad es razonable. Hay algo más de dispersión en valores bajos y altos, por lo que hay una posible ligera heterocedasticidad, pero no es grave.
+
+En el gráfico de QQ residuals, los puntos siguen bastante bien la línea diagonal, por lo que los residuos son aproximadamente normales.
+
+
+Hay pequeñas desviaciones en las colas, lo cual es esperable en datos ambientales
+
+La scale-location muestra una nube más o menos homogénea, sin tendencia clara. Hay una varianza (homocedasticidad aceptable)
+
+En residuals vs leverage vemos que hay pocos puntos con alto leverage (11,32,62), pero ninguno excede la distancia de Cook, por lo que no hay observaciones influyentes que distorsionen el modelo.
+
+
+### Si no hicieramos factores
+
+```{r}
+# Modelo de regresión con el nuevo factor
+modelo_factor_SO2 <- lm(TOUT ~ PM2.5 + O3 + SO2 + NO2, data = data_SO2)
+summary(modelo_factor_SO2)
+
+# Validar multicolinealidad
+library(car)
+vif(modelo_factor_SO2)
+
+# Diagnóstico del modelo
+par(mfrow=c(2,2))
+plot(modelo_factor_SO2)
+par(mfrow=c(1,1))
+```
+
+
+## Estación SUR
+
+```{r}
+library(readxl)
+library(dplyr)
+library(psych)     
+library(corrplot)  
+library(GGally)    
+library(MVN)       
+library(lmtest)   
+library(car)      
+library(moments) 
+library(ggplot2)
+tabla_2023_SUR <- read_excel("Datos reducidos 2023.xlsx", sheet = "SUR")
+
+tabla_2023_SUR
+
+
+vars_SUR <- c("NO2","O3", "PM10", "PM2.5", "SO2", "TOUT")
+data_SUR <- tabla_2023_SUR %>% select(all_of(vars_SUR))
+```
+
+### Correlación
+
+```{r}
+
+summary(data_SUR)
+sapply(data_SUR, function(x) sum(is.na(x)))  
+```
+
+
+
+
+```{r}
+
+cor(data_SUR, use = "pairwise.complete.obs")  
+cov(data_SUR, use = "pairwise.complete.obs")     
+
+
+corrplot(cor(data_SUR, use = "pairwise.complete.obs"), method = "color")
+```
+
+
+
+### Análisis Factorial
+
+```{r}
+library(psych)
+
+# Selecciona solo las variables explicativas
+X_SUR <- data_SUR %>% select(NO2, O3, PM10, PM2.5, SO2)
+
+# Análisis factorial o PCA
+fa_result_SUR <- fa(X_SUR, nfactors = 2, rotate = "varimax", fm = "ml")  
+print(fa_result_SUR)
+
+# Si prefieres PCA
+pca_result_SUR <- principal(X_SUR, nfactors = 2, rotate = "varimax")
+print(pca_result_SUR)
+```
+
+
+
+
+El factor 1 está dominado por PM10 (0.90), PM2.5 (0.82), NO2 (0.84), pero solo usaríamos a PM10 y PM2.5, por lo que esto representa un factor de contaminación por partículas.
+
+Para el factor 2, ninguna variable carga fuertemente ya que todas son menores a 0.45 (solo O3) así que no hay evidencia clara de un segundo factor fuerte.
+
+Un solo factor principal explica la mayor parte de la varianza. Ese factor está fuertemente asociado con PM10 y PM2.5, es decir, ambas variables se comportan de manera muy similar.
+
+Para el modelo, se podría usar una de ellas o un factor combinado. 
+
+
+Creamos el factor y dejamos las otras variables tal como están
+
+```{r}
+
+library(psych)
+
+# Seleccionamos las dos variables
+PM_data_SUR <- data_SUR %>% select(PM10, PM2.5)
+
+# Extraemos el primer componente/factor (el que agrupa ambas)
+fa_PM_SUR <- fa(PM_data_SUR, nfactors = 1, fm = "ml")
+print(fa_PM_SUR)
+
+# Crear el score del factor (representa la contaminación particulada)
+data_SUR$Factor_PM_SUR <- as.vector(fa_PM_SUR$scores)  
+```
+
+
+
+
+
+Para las cargas factoriales tenemos 0.86 en PM10 y PM2.5
+
+La proporción de varianza explicada es el 74% de la varianza conjunta. La correlación del factor con las variables originales es de aproximadamente 0.92
+
+Es por esto que crear un solo factor latente es estadísticamente válido.
+
+
+```{r}
+# Modelo de regresión con el nuevo factor
+modelo_factor_SUR <- lm(TOUT ~ Factor_PM_SUR + O3 + SO2 + NO2, data = data_SUR)
+summary(modelo_factor_SUR)
+
+# Validar multicolinealidad
+library(car)
+vif(modelo_factor_SUR)
+
+# Diagnóstico del modelo
+par(mfrow=c(2,2))
+plot(modelo_factor_SUR)
+par(mfrow=c(1,1))
+```
+
+
+
+
+
+El R ajustado es 0.4991, por lo que el modelo explica alrededor del 50% de la variación en TOUT. Esto es bueno para datos ambientales, donde la temperatura depende de muchos otros factores.
+
+El gráfico de residuals vs fitted nos muestra que los puntos están dispersos sin un patrón fuerte, por lo que la linealidad es razonable. Hay algo más de dispersión en valores bajos y altos, por lo que hay una posible ligera heterocedasticidad, pero no es grave.
+
+En el gráfico de QQ residuals, los puntos siguen bastante bien la línea diagonal, por lo que los residuos son aproximadamente normales.
+
+
+Hay pequeñas desviaciones en las colas, lo cual es esperable en datos ambientales
+
+La scale-location muestra una nube más o menos homogénea, sin tendencia clara. Hay una varianza (homocedasticidad aceptable)
+
+En residuals vs leverage vemos que hay pocos puntos con alto leverage (11,32,62), pero ninguno excede la distancia de Cook, por lo que no hay observaciones influyentes que distorsionen el modelo.
+
+
+### Si no hicieramos factores
+
+```{r}
+# Modelo de regresión con el nuevo factor
+modelo_factor_SUR <- lm(TOUT ~ PM10 + O3 + SO2 + NO2, data = data_SUR)
+summary(modelo_factor_SUR)
+
+# Validar multicolinealidad
+library(car)
+vif(modelo_factor_SUR)
+
+# Diagnóstico del modelo
+par(mfrow=c(2,2))
+plot(modelo_factor_SUR)
+par(mfrow=c(1,1))
+```
+
+
+# Bootstrap
+
+## SE
+
+```{r}
+library(boot)
+
+boot_fn_SE <- function(data_SE, indices) {
+  d_SE <- data_SE[indices, ]  # submuestra
+  fit_SE <- lm(TOUT ~ Factor_PM_SE + O3 + SO2 + NO2, data = d_SE)
+  return(coef(fit_SE))
+}
+
+# Ejecutar bootstrap con 1000 repeticiones
+set.seed(123)
+boot_results_SE <- boot(data = data_SE, statistic = boot_fn_SE, R = 1000)
+
+# Resultados del bootstrap
+print(boot_results_SE)
+
+# Intervalos de confianza bootstrap
+boot.ci(boot_results_SE, type = "perc", index = 2) 
+
+```
+### Intervalos
+
+```{r}
+# Versión corregida del resumen bootstrap
+# Modelo original 
+fit_SE <- lm(TOUT ~ Factor_PM_SE + O3 + SO2 + NO2, data = data_SE)
+
+# Nombres correctos de los coeficientes
+params <- names(coef(fit_SE))
+
+results_list <- lapply(seq_along(params), function(i) {
+  ci <- boot.ci(boot.out = boot_results_SE, type = "perc", index = i)
+  data.frame(
+    Parametro = params[i],
+    Estimado = boot_results_SE$t0[i],
+    IC_Inf = ci$percent[4],
+    IC_Sup = ci$percent[5]
+  )
+})
+
+resultados_bootstrap <- do.call(rbind, results_list)
+print(resultados_bootstrap)
+
+
+```
+
+
+## CE
+```{r}
+
+library(boot)
+
+boot_fn_CE <- function(data_CE, indices) {
+  d_CE <- data_CE[indices, ]  # submuestra
+  fit_CE <- lm(TOUT ~ Factor_PM_CE + O3 + SO2 + NO2, data = d_CE)
+  return(coef(fit_CE))
+}
+
+# Ejecutar bootstrap con 1000 repeticiones
+set.seed(123)
+boot_results_CE <- boot(data = data_CE, statistic = boot_fn_CE, R = 1000)
+
+# Resultados del bootstrap
+print(boot_results_CE)
+
+# Intervalos de confianza bootstrap
+boot.ci(boot_results_CE, type = "perc", index = 2) 
+
+```
+
+
+### Intervalos
+
+
+```{r}
+# Versión corregida del resumen bootstrap
+# Modelo original 
+fit_CE <- lm(TOUT ~ Factor_PM_CE + O3 + SO2 + NO2, data = data_CE)
+
+# Nombres correctos de los coeficientes
+params <- names(coef(fit_CE))
+
+results_list <- lapply(seq_along(params), function(i) {
+  ci <- boot.ci(boot.out = boot_results_CE, type = "perc", index = i)
+  data.frame(
+    Parametro = params[i],
+    Estimado = boot_results_CE$t0[i],
+    IC_Inf = ci$percent[4],
+    IC_Sup = ci$percent[5]
+  )
+})
+
+resultados_bootstrap <- do.call(rbind, results_list)
+print(resultados_bootstrap)
+
+
+```
+
+## SO2
+
+```{r}
+
+library(boot)
+
+boot_fn_SO2 <- function(data_SO2, indices) {
+  d_SO2 <- data_SO2[indices, ]  # submuestra
+  fit_SO2 <- lm(TOUT ~ Factor_PM_SO2 + O3 + SO2 + NO2, data = d_SO2)
+  return(coef(fit_SO2))
+}
+
+# Ejecutar bootstrap con 1000 repeticiones
+set.seed(123)
+boot_results_SO2 <- boot(data = data_SO2, statistic = boot_fn_SO2, R = 1000)
+
+# Resultados del bootstrap
+print(boot_results_SO2)
+
+# Intervalos de confianza bootstrap
+boot.ci(boot_results_SO2, type = "perc", index = 2) 
+
+```
+
+### Intervalos
+
+```{r}
+# Versión corregida del resumen bootstrap
+# Modelo original 
+fit_SO2 <- lm(TOUT ~ Factor_PM_SO2 + O3 + SO2 + NO2, data = data_SO2)
+
+# Nombres correctos de los coeficientes
+params <- names(coef(fit_SO2))
+
+results_list <- lapply(seq_along(params), function(i) {
+  ci <- boot.ci(boot.out = boot_results_SO2, type = "perc", index = i)
+  data.frame(
+    Parametro = params[i],
+    Estimado = boot_results_SO2$t0[i],
+    IC_Inf = ci$percent[4],
+    IC_Sup = ci$percent[5]
+  )
+})
+
+resultados_bootstrap <- do.call(rbind, results_list)
+print(resultados_bootstrap)
+
+
+```
+
+
+## SUR
+
+
+```{r}
+
+library(boot)
+
+boot_fn_SUR <- function(data_SUR, indices) {
+  d_SUR <- data_SUR[indices, ]  # submuestra
+  fit_SUR <- lm(TOUT ~ Factor_PM_SUR + O3 + SO2 + NO2, data = d_SUR)
+  return(coef(fit_SUR))
+}
+
+# Ejecutar bootstrap con 1000 repeticiones
+set.seed(123)
+boot_results_SUR <- boot(data = data_SUR, statistic = boot_fn_SUR, R = 1000)
+
+# Resultados del bootstrap
+print(boot_results_SUR)
+
+# Intervalos de confianza bootstrap
+boot.ci(boot_results_SUR, type = "perc", index = 2) 
+
+```
+
+### Intervalos
+
+```{r}
+# Versión corregida del resumen bootstrap
+# Modelo original 
+fit_SUR <- lm(TOUT ~ Factor_PM_SUR + O3 + SO2 + NO2, data = data_SUR)
+
+# Nombres correctos de los coeficientes
+params <- names(coef(fit_SUR))
+
+results_list <- lapply(seq_along(params), function(i) {
+  ci <- boot.ci(boot.out = boot_results_SUR, type = "perc", index = i)
+  data.frame(
+    Parametro = params[i],
+    Estimado = boot_results_SUR$t0[i],
+    IC_Inf = ci$percent[4],
+    IC_Sup = ci$percent[5]
+  )
+})
+
+resultados_bootstrap <- do.call(rbind, results_list)
+print(resultados_bootstrap)
+
+
+```
+
+----------------------------------------------------------------------------
+
+
+# Como los contaminantes afectan a la temperatura
+
+## SE
+
+```{r}
+
+library(readxl); library(dplyr); library(ggplot2); library(GGally)
+library(corrplot); library(psych); library(car); library(lmtest)
+library(nortest); library(tseries); library(boot); library(zoo); library(forecast)
+
+
+file <- "datos_modificados_final.xlsx"    
+sheet <- "SE"
+
+datos <- read_excel(path = file, sheet = sheet)
+
+glimpse(datos)
+head(datos)
+
+
+```
+
+
+```{r}
+
+pm25_name <- "PM2.5"
+pm10_name <- "PM10"
+meteor_vars <- c("TOUT","PRS","RAINF","RH", "SR", "WSR", "WDR")  
+
+season_var <- "season"                    
+season_dummies <- c("is_invierno","is_primavera","is_verano") 
+
+
+```
+
+```{r}
+
+datos_clean <- datos %>% 
+  select(all_of(c(pm25_name, pm10_name, meteor_vars, season_dummies))) %>%
+  na.omit()
+
+
+cor_pm <- cor(datos_clean[[pm25_name]], datos_clean[[pm10_name]], use="complete.obs")
+cat("Correlación pm2.5 vs pm10:", round(cor_pm,3), "\n")
+
+# Matriz de correlación entre meteorológicas y contaminantes
+corr_vars <- datos_clean %>% select(all_of(c(pm25_name, pm10_name, meteor_vars)))
+cor_mat <- cor(corr_vars, use = "pairwise.complete.obs")
+print(round(cor_mat,3))
+corrplot(cor_mat, method="number", type="upper", tl.cex = 0.8)
+
+
+```
+
+```{r}
+# Pares y distribuciones
+GGally::ggpairs(corr_vars)
+```
+
+
+
+```{r}
+# Histogramas y QQ-plots para pm25 y pm10
+par(mfrow=c(2,2))
+hist(datos_clean[[pm25_name]], main="pm2.5", xlab="pm2.5")
+qqnorm(datos_clean[[pm25_name]]); qqline(datos_clean[[pm25_name]])
+hist(datos_clean[[pm10_name]], main="pm10", xlab="pm10")
+qqnorm(datos_clean[[pm10_name]]); qqline(datos_clean[[pm10_name]])
+par(mfrow=c(1,1))
+```
+
+```{r}
+library(nortest)
+library(tseries)
+# Normalidad (Shapiro-Wilk para muestra pequeña; Anderson-Darling / Jarque-Bera)
+if(nrow(datos_clean) <= 5000){
+  cat("Shapiro pm2.5 p-value:", tryCatch(shapiro.test(datos_clean[[pm25_name]])$p.value, error=function(e) NA), "\n")
+  cat("Shapiro pm10 p-value:", tryCatch(shapiro.test(datos_clean[[pm10_name]])$p.value, error=function(e) NA), "\n")
+}
+jarque_bera_resultado <- tseries::jarque.bera.test(datos_clean[[pm25_name]])
+
+cat("Anderson-Darling pm2.5 p-value:", ad.test(datos_clean[[pm25_name]])$p.value, "\n")
+cat("Anderson-Darling pm10 p-value:", ad.test(datos_clean[[pm10_name]])$p.value, "\n")
+
+cat("Jarque-Bera pm2.5:")
+print(jarque_bera_resultado)
+```
+
+```{r}
+library(psych)
+describe(datos_clean)
+
+```
+
+Con esto vemos que tanto PM2.5 y PM10 están sesgadas
+La lluvia también la normalizaremos porque está muy sesgada
+WDR la convertimos mejor a seno y coseno
+
+Es por esto que hacemos las siguientes transformaciones
+
+```{r}
+library(dplyr)
+
+datos_clean <- datos_clean %>%
+  mutate(
+    pm25_log = log(PM2.5),
+    pm10_log = log(PM10)
+  )
+
+
+datos_clean <- datos_clean %>%
+  mutate(
+    RAINF_log = log(RAINF + 1),
+    WDR_sin = sin(WDR * pi/180),
+    WDR_cos = cos(WDR * pi/180)
+  )
+```
+
+```{r}
+
+# Ver si log mejora normalidad (visual)
+par(mfrow=c(2,2))
+qqnorm(datos_clean$pm25_log); qqline(datos_clean$pm25_log); title("QQ pm2.5 log")
+qqnorm(datos_clean$pm10_log); qqline(datos_clean$pm10_log); title("QQ pm10 log")
+hist(datos_clean$pm25_log); hist(datos_clean$pm10_log)
+par(mfrow=c(1,1))
+```
+
+```{r}
+# Convertir pm2.5 y pm10 a un componente común (PCA)
+pm_for_pca <- datos_clean %>% select(pm25_log, pm10_log)
+pca_res <- prcomp(pm_for_pca, center = TRUE, scale. = TRUE)
+summary(pca_res)
+```
+
+```{r}
+
+# Primera componente
+datos_clean$pm_PC1 <- pca_res$x[,1]
+
+
+# Proporción de varianza explicada
+pca_var_expl <- summary(pca_res)$importance[2,1]
+cat("Porcentaje varianza explicada por PC1:", round(100*pca_var_expl,2), "%\n")
+```
+
+```{r}
+
+# Estandarizar predictoras meteorológicas (z-score)
+datos_std <- datos_clean
+datos_std[meteor_vars] <- scale(datos_std[meteor_vars])
+```
+
+
+```{r}
+
+# Regresión lineal: pm_PC1 ~ meteorológicas + dummies de estación
+rhs <- paste(c(meteor_vars, season_dummies), collapse = " + ")
+formula_str <- paste("pm_PC1 ~", rhs)
+formula_lm <- as.formula(formula_str)
+cat("Modelo:", formula_str, "\n")
+
+lm0 <- lm(formula_lm, data = datos_std)
+summary(lm0)
+```
+### Diagnósitco de supuestos
+
+```{r}
+
+# Residuales
+res <- residuals(lm0)
+fitted <- fitted(lm0)
+```
+
+
+```{r}
+library(lmtest)
+# Homocedasticidad: Breusch-Pagan
+bp <- bptest(lm0)
+cat("Breusch-Pagan p-value:", bp$p.value, "\n")
+```
+
+```{r}
+
+# Autocorrelación: Durbin-Watson
+dw <- tryCatch(lmtest::dwtest(lm0), error=function(e) e)
+print(dw)
+```
+
+```{r}
+
+# 8.3 Normalidad de residuos: Shapiro / Anderson
+if(length(res) <= 5000){
+  cat("Shapiro residuos p:", tryCatch(shapiro.test(res)$p.value, error=function(e) NA), "\n")
+}
+cat("Anderson-Darling residuos p:", ad.test(res)$p.value, "\n")
+```
+```{r}
+library(car)
+# Multicolinealidad: VIF
+vif_vals <- vif(lm0)
+print(vif_vals)
+```
+
+```{r}
+
+# Plots diagnósticos básicos
+par(mfrow=c(2,2))
+plot(lm0)
+par(mfrow=c(1,1))
+```
+
+
+```{r}
+
+# ACF de residuos (para estimar dependencia)
+acf_res <- acf(res, main="ACF residuos", lag.max = 50)
+```
+
+### Bootstrap
+
+```{r}
+
+# Bootstrap con dependencia: Moving Block Bootstrap (tsboot)
+
+stat_fun <- function(data_series, i){
+  # data_series: matrix/data.frame (original rows)
+  d <- data_series[i, , drop = FALSE]   # submuestreo por bloques cuando tsboot llama
+  mod <- lm(pm_PC1 ~ ., data = as.data.frame(d))
+  coefs <- coef(mod)
+  return(coefs)
+}
+```
+
+```{r}
+
+# Construir data.frame para la regresión: necesitamos solo variables del RHS + pm_PC1
+boot_df <- datos_std %>% select(pm_PC1, all_of(meteor_vars), all_of(season_dummies))
+boot_df <- as.data.frame(boot_df)
+```
+
+
+```{r}
+
+# Elección de longitud de bloque l:
+n <- nrow(boot_df)
+# regla simple: l = round(1.5 * n^(1/3)) (puedes ajustar)
+block_length <- max(2, round(1.5 * n^(1/3)))
+cat("Tamaño muestra n =", n, " -> block length =", block_length, "\n")
+```
+
+
+```{r}
+library(boot)
+# Usamos tsboot con tipo="block" (moving block bootstrap)
+stat_for_boot <- function(data, i) {
+  # i is index vector provided by tsboot; this will be used to subset rows
+  d <- data[i, , drop=FALSE]
+  mod <- lm(pm_PC1 ~ ., data = d)
+  return(coef(mod))
+}
+set.seed(12345)
+Rboot <- 2000  
+boot_ts <- tsboot(tseries = boot_df, statistic = stat_for_boot, R = Rboot,
+                  l = block_length, sim = "fixed")  # sim="fixed" para moving block
+
+```
+
+```{r}
+
+# boot_ts$t es una matrix R x p (p = número de coeficientes)
+coef_names <- names(coef(lm0))
+colnames(boot_ts$t) <- coef_names
+
+# Estimaciones bootstrap: medias y percentiles
+boot_estimates <- apply(boot_ts$t, 2, mean, na.rm=TRUE)
+boot_se <- apply(boot_ts$t, 2, sd, na.rm=TRUE)
+boot_ci_lower <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.025, na.rm=TRUE))
+boot_ci_upper <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.975, na.rm=TRUE))
+
+boot_summary <- data.frame(
+  term = coef_names,
+  orig_est = coef(lm0),
+  boot_mean = boot_estimates,
+  boot_se = boot_se,
+  CI_2.5 = boot_ci_lower,
+  CI_97.5 = boot_ci_upper
+)
+print(boot_summary)
+```
+
+
+```{r}
+# Interpretación y resultados
+
+boot_summary$signif_boot <- ifelse(boot_summary$CI_2.5 * boot_summary$CI_97.5 > 0, TRUE, FALSE)
+print(boot_summary)
+```
+
+
+```{r}
+
+# Gráficos de impacto: coeficientes con CI (bootstrap)
+
+library(ggplot2)
+coef_plot_df <- boot_summary %>% filter(term != "(Intercept)")
+coef_plot_df$term <- factor(coef_plot_df$term, levels = coef_plot_df$term[order(boot_summary$boot_mean)])
+ggplot(coef_plot_df, aes(x=term, y=boot_mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin=CI_2.5, ymax=CI_97.5), width=0.2) +
+  coord_flip() +
+  labs(title="Coeficientes (bootstrap block) y CI 95%", y="Coef bootstrap", x="Variable")
+
+
+```
+
+## CE
+
+```{r}
+
+library(readxl); library(dplyr); library(ggplot2); library(GGally)
+library(corrplot); library(psych); library(car); library(lmtest)
+library(nortest); library(tseries); library(boot); library(zoo); library(forecast)
+
+
+file <- "datos_modificados_final.xlsx"    
+sheet <- "CE"
+
+datos <- read_excel(path = file, sheet = sheet)
+
+glimpse(datos)
+head(datos)
+
+
+```
+
+
+```{r}
+
+pm25_name <- "PM2.5"
+pm10_name <- "PM10"
+meteor_vars <- c("TOUT","PRS","RAINF","RH", "SR", "WSR", "WDR")  
+
+season_var <- "season"                    
+season_dummies <- c("is_invierno","is_primavera","is_verano") 
+
+
+```
+
+```{r}
+
+datos_clean <- datos %>% 
+  select(all_of(c(pm25_name, pm10_name, meteor_vars, season_dummies))) %>%
+  na.omit()
+
+
+cor_pm <- cor(datos_clean[[pm25_name]], datos_clean[[pm10_name]], use="complete.obs")
+cat("Correlación pm2.5 vs pm10:", round(cor_pm,3), "\n")
+
+# Matriz de correlación entre meteorológicas y contaminantes
+corr_vars <- datos_clean %>% select(all_of(c(pm25_name, pm10_name, meteor_vars)))
+cor_mat <- cor(corr_vars, use = "pairwise.complete.obs")
+print(round(cor_mat,3))
+corrplot(cor_mat, method="number", type="upper", tl.cex = 0.8)
+
+
+```
+
+```{r}
+# Pares y distribuciones
+GGally::ggpairs(corr_vars)
+```
+
+
+
+```{r}
+# Histogramas y QQ-plots para pm25 y pm10
+par(mfrow=c(2,2))
+hist(datos_clean[[pm25_name]], main="pm2.5", xlab="pm2.5")
+qqnorm(datos_clean[[pm25_name]]); qqline(datos_clean[[pm25_name]])
+hist(datos_clean[[pm10_name]], main="pm10", xlab="pm10")
+qqnorm(datos_clean[[pm10_name]]); qqline(datos_clean[[pm10_name]])
+par(mfrow=c(1,1))
+```
+
+```{r}
+library(nortest)
+library(tseries)
+# Normalidad (Shapiro-Wilk para muestra pequeña; Anderson-Darling / Jarque-Bera)
+if(nrow(datos_clean) <= 5000){
+  cat("Shapiro pm2.5 p-value:", tryCatch(shapiro.test(datos_clean[[pm25_name]])$p.value, error=function(e) NA), "\n")
+  cat("Shapiro pm10 p-value:", tryCatch(shapiro.test(datos_clean[[pm10_name]])$p.value, error=function(e) NA), "\n")
+}
+jarque_bera_resultado <- tseries::jarque.bera.test(datos_clean[[pm25_name]])
+
+cat("Anderson-Darling pm2.5 p-value:", ad.test(datos_clean[[pm25_name]])$p.value, "\n")
+cat("Anderson-Darling pm10 p-value:", ad.test(datos_clean[[pm10_name]])$p.value, "\n")
+
+cat("Jarque-Bera pm2.5:")
+print(jarque_bera_resultado)
+```
+
+```{r}
+library(psych)
+describe(datos_clean)
+
+```
+
+Con esto vemos que tanto PM2.5 y PM10 están sesgadas
+La lluvia también la normalizaremos porque está muy sesgada
+WDR la convertimos mejor a seno y coseno
+
+Es por esto que hacemos las siguientes transformaciones
+
+```{r}
+library(dplyr)
+
+datos_clean <- datos_clean %>%
+  mutate(
+    pm25_log = log(PM2.5),
+    pm10_log = log(PM10)
+  )
+
+
+datos_clean <- datos_clean %>%
+  mutate(
+    RAINF_log = log(RAINF + 1),
+    WDR_sin = sin(WDR * pi/180),
+    WDR_cos = cos(WDR * pi/180)
+  )
+```
+
+```{r}
+
+# Ver si log mejora normalidad (visual)
+par(mfrow=c(2,2))
+qqnorm(datos_clean$pm25_log); qqline(datos_clean$pm25_log); title("QQ pm2.5 log")
+qqnorm(datos_clean$pm10_log); qqline(datos_clean$pm10_log); title("QQ pm10 log")
+hist(datos_clean$pm25_log); hist(datos_clean$pm10_log)
+par(mfrow=c(1,1))
+```
+
+```{r}
+# Convertir pm2.5 y pm10 a un componente común (PCA)
+pm_for_pca <- datos_clean %>% select(pm25_log, pm10_log)
+pca_res <- prcomp(pm_for_pca, center = TRUE, scale. = TRUE)
+summary(pca_res)
+```
+
+```{r}
+
+# Primera componente
+datos_clean$pm_PC1 <- pca_res$x[,1]
+
+
+# Proporción de varianza explicada
+pca_var_expl <- summary(pca_res)$importance[2,1]
+cat("Porcentaje varianza explicada por PC1:", round(100*pca_var_expl,2), "%\n")
+```
+
+```{r}
+
+# Estandarizar predictoras meteorológicas (z-score)
+datos_std <- datos_clean
+datos_std[meteor_vars] <- scale(datos_std[meteor_vars])
+```
+
+
+```{r}
+
+# Regresión lineal: pm_PC1 ~ meteorológicas + dummies de estación
+rhs <- paste(c(meteor_vars, season_dummies), collapse = " + ")
+formula_str <- paste("pm_PC1 ~", rhs)
+formula_lm <- as.formula(formula_str)
+cat("Modelo:", formula_str, "\n")
+
+lm0 <- lm(formula_lm, data = datos_std)
+summary(lm0)
+```
+### Diagnósitco de supuestos
+
+```{r}
+
+# Residuales
+res <- residuals(lm0)
+fitted <- fitted(lm0)
+```
+
+
+```{r}
+library(lmtest)
+# Homocedasticidad: Breusch-Pagan
+bp <- bptest(lm0)
+cat("Breusch-Pagan p-value:", bp$p.value, "\n")
+```
+
+```{r}
+
+# Autocorrelación: Durbin-Watson
+dw <- tryCatch(lmtest::dwtest(lm0), error=function(e) e)
+print(dw)
+```
+
+```{r}
+
+# 8.3 Normalidad de residuos: Shapiro / Anderson
+if(length(res) <= 5000){
+  cat("Shapiro residuos p:", tryCatch(shapiro.test(res)$p.value, error=function(e) NA), "\n")
+}
+cat("Anderson-Darling residuos p:", ad.test(res)$p.value, "\n")
+```
+```{r}
+library(car)
+# Multicolinealidad: VIF
+vif_vals <- vif(lm0)
+print(vif_vals)
+```
+
+```{r}
+
+# Plots diagnósticos básicos
+par(mfrow=c(2,2))
+plot(lm0)
+par(mfrow=c(1,1))
+```
+
+
+```{r}
+
+# ACF de residuos (para estimar dependencia)
+acf_res <- acf(res, main="ACF residuos", lag.max = 50)
+```
+
+### Bootstrap
+
+```{r}
+
+# Bootstrap con dependencia: Moving Block Bootstrap (tsboot)
+
+stat_fun <- function(data_series, i){
+  # data_series: matrix/data.frame (original rows)
+  d <- data_series[i, , drop = FALSE]   # submuestreo por bloques cuando tsboot llama
+  mod <- lm(pm_PC1 ~ ., data = as.data.frame(d))
+  coefs <- coef(mod)
+  return(coefs)
+}
+```
+
+```{r}
+
+# Construir data.frame para la regresión: necesitamos solo variables del RHS + pm_PC1
+boot_df <- datos_std %>% select(pm_PC1, all_of(meteor_vars), all_of(season_dummies))
+boot_df <- as.data.frame(boot_df)
+```
+
+
+```{r}
+
+# Elección de longitud de bloque l:
+n <- nrow(boot_df)
+# regla simple: l = round(1.5 * n^(1/3)) (puedes ajustar)
+block_length <- max(2, round(1.5 * n^(1/3)))
+cat("Tamaño muestra n =", n, " -> block length =", block_length, "\n")
+```
+
+
+```{r}
+library(boot)
+# Usamos tsboot con tipo="block" (moving block bootstrap)
+stat_for_boot <- function(data, i) {
+  # i is index vector provided by tsboot; this will be used to subset rows
+  d <- data[i, , drop=FALSE]
+  mod <- lm(pm_PC1 ~ ., data = d)
+  return(coef(mod))
+}
+set.seed(12345)
+Rboot <- 2000  
+boot_ts <- tsboot(tseries = boot_df, statistic = stat_for_boot, R = Rboot,
+                  l = block_length, sim = "fixed")  # sim="fixed" para moving block
+
+```
+
+```{r}
+
+# boot_ts$t es una matrix R x p (p = número de coeficientes)
+coef_names <- names(coef(lm0))
+colnames(boot_ts$t) <- coef_names
+
+# Estimaciones bootstrap: medias y percentiles
+boot_estimates <- apply(boot_ts$t, 2, mean, na.rm=TRUE)
+boot_se <- apply(boot_ts$t, 2, sd, na.rm=TRUE)
+boot_ci_lower <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.025, na.rm=TRUE))
+boot_ci_upper <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.975, na.rm=TRUE))
+
+boot_summary <- data.frame(
+  term = coef_names,
+  orig_est = coef(lm0),
+  boot_mean = boot_estimates,
+  boot_se = boot_se,
+  CI_2.5 = boot_ci_lower,
+  CI_97.5 = boot_ci_upper
+)
+print(boot_summary)
+```
+
+
+```{r}
+# Interpretación y resultados
+
+boot_summary$signif_boot <- ifelse(boot_summary$CI_2.5 * boot_summary$CI_97.5 > 0, TRUE, FALSE)
+print(boot_summary)
+```
+
+
+```{r}
+
+# Gráficos de impacto: coeficientes con CI (bootstrap)
+
+library(ggplot2)
+coef_plot_df <- boot_summary %>% filter(term != "(Intercept)")
+coef_plot_df$term <- factor(coef_plot_df$term, levels = coef_plot_df$term[order(boot_summary$boot_mean)])
+ggplot(coef_plot_df, aes(x=term, y=boot_mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin=CI_2.5, ymax=CI_97.5), width=0.2) +
+  coord_flip() +
+  labs(title="Coeficientes (bootstrap block) y CI 95%", y="Coef bootstrap", x="Variable")
+
+
+```
+
+
+## SO2
+
+```{r}
+
+library(readxl); library(dplyr); library(ggplot2); library(GGally)
+library(corrplot); library(psych); library(car); library(lmtest)
+library(nortest); library(tseries); library(boot); library(zoo); library(forecast)
+
+
+file <- "datos_modificados_final.xlsx"    
+sheet <- "SO2"
+
+datos <- read_excel(path = file, sheet = sheet)
+
+glimpse(datos)
+head(datos)
+
+
+```
+
+
+```{r}
+
+pm25_name <- "PM2.5"
+pm10_name <- "PM10"
+meteor_vars <- c("TOUT","PRS","RAINF","RH", "SR", "WSR", "WDR")  
+
+season_var <- "season"                    
+season_dummies <- c("is_invierno","is_primavera","is_verano") 
+
+
+```
+
+```{r}
+
+datos_clean <- datos %>% 
+  select(all_of(c(pm25_name, pm10_name, meteor_vars, season_dummies))) %>%
+  na.omit()
+
+
+cor_pm <- cor(datos_clean[[pm25_name]], datos_clean[[pm10_name]], use="complete.obs")
+cat("Correlación pm2.5 vs pm10:", round(cor_pm,3), "\n")
+
+# Matriz de correlación entre meteorológicas y contaminantes
+corr_vars <- datos_clean %>% select(all_of(c(pm25_name, pm10_name, meteor_vars)))
+cor_mat <- cor(corr_vars, use = "pairwise.complete.obs")
+print(round(cor_mat,3))
+corrplot(cor_mat, method="number", type="upper", tl.cex = 0.8)
+
+
+```
+
+```{r}
+# Pares y distribuciones
+GGally::ggpairs(corr_vars)
+```
+
+
+
+```{r}
+# Histogramas y QQ-plots para pm25 y pm10
+par(mfrow=c(2,2))
+hist(datos_clean[[pm25_name]], main="pm2.5", xlab="pm2.5")
+qqnorm(datos_clean[[pm25_name]]); qqline(datos_clean[[pm25_name]])
+hist(datos_clean[[pm10_name]], main="pm10", xlab="pm10")
+qqnorm(datos_clean[[pm10_name]]); qqline(datos_clean[[pm10_name]])
+par(mfrow=c(1,1))
+```
+
+```{r}
+library(nortest)
+library(tseries)
+# Normalidad (Shapiro-Wilk para muestra pequeña; Anderson-Darling / Jarque-Bera)
+if(nrow(datos_clean) <= 5000){
+  cat("Shapiro pm2.5 p-value:", tryCatch(shapiro.test(datos_clean[[pm25_name]])$p.value, error=function(e) NA), "\n")
+  cat("Shapiro pm10 p-value:", tryCatch(shapiro.test(datos_clean[[pm10_name]])$p.value, error=function(e) NA), "\n")
+}
+jarque_bera_resultado <- tseries::jarque.bera.test(datos_clean[[pm25_name]])
+
+cat("Anderson-Darling pm2.5 p-value:", ad.test(datos_clean[[pm25_name]])$p.value, "\n")
+cat("Anderson-Darling pm10 p-value:", ad.test(datos_clean[[pm10_name]])$p.value, "\n")
+
+cat("Jarque-Bera pm2.5:")
+print(jarque_bera_resultado)
+```
+
+```{r}
+library(psych)
+describe(datos_clean)
+
+```
+
+Con esto vemos que tanto PM2.5 y PM10 están sesgadas
+La lluvia también la normalizaremos porque está muy sesgada
+WDR la convertimos mejor a seno y coseno
+
+Es por esto que hacemos las siguientes transformaciones
+
+```{r}
+library(dplyr)
+
+datos_clean <- datos_clean %>%
+  mutate(
+    pm25_log = log(PM2.5),
+    pm10_log = log(PM10)
+  )
+
+
+datos_clean <- datos_clean %>%
+  mutate(
+    RAINF_log = log(RAINF + 1),
+    WDR_sin = sin(WDR * pi/180),
+    WDR_cos = cos(WDR * pi/180)
+  )
+```
+
+```{r}
+
+# Ver si log mejora normalidad (visual)
+par(mfrow=c(2,2))
+qqnorm(datos_clean$pm25_log); qqline(datos_clean$pm25_log); title("QQ pm2.5 log")
+qqnorm(datos_clean$pm10_log); qqline(datos_clean$pm10_log); title("QQ pm10 log")
+hist(datos_clean$pm25_log); hist(datos_clean$pm10_log)
+par(mfrow=c(1,1))
+```
+
+```{r}
+# Convertir pm2.5 y pm10 a un componente común (PCA)
+pm_for_pca <- datos_clean %>% select(pm25_log, pm10_log)
+pca_res <- prcomp(pm_for_pca, center = TRUE, scale. = TRUE)
+summary(pca_res)
+```
+
+```{r}
+
+# Primera componente
+datos_clean$pm_PC1 <- pca_res$x[,1]
+
+
+# Proporción de varianza explicada
+pca_var_expl <- summary(pca_res)$importance[2,1]
+cat("Porcentaje varianza explicada por PC1:", round(100*pca_var_expl,2), "%\n")
+```
+
+```{r}
+
+# Estandarizar predictoras meteorológicas (z-score)
+datos_std <- datos_clean
+datos_std[meteor_vars] <- scale(datos_std[meteor_vars])
+```
+
+
+```{r}
+
+# Regresión lineal: pm_PC1 ~ meteorológicas + dummies de estación
+rhs <- paste(c(meteor_vars, season_dummies), collapse = " + ")
+formula_str <- paste("pm_PC1 ~", rhs)
+formula_lm <- as.formula(formula_str)
+cat("Modelo:", formula_str, "\n")
+
+lm0 <- lm(formula_lm, data = datos_std)
+summary(lm0)
+```
+### Diagnósitco de supuestos
+
+```{r}
+
+# Residuales
+res <- residuals(lm0)
+fitted <- fitted(lm0)
+```
+
+
+```{r}
+library(lmtest)
+# Homocedasticidad: Breusch-Pagan
+bp <- bptest(lm0)
+cat("Breusch-Pagan p-value:", bp$p.value, "\n")
+```
+
+```{r}
+
+# Autocorrelación: Durbin-Watson
+dw <- tryCatch(lmtest::dwtest(lm0), error=function(e) e)
+print(dw)
+```
+
+```{r}
+
+# 8.3 Normalidad de residuos: Shapiro / Anderson
+if(length(res) <= 5000){
+  cat("Shapiro residuos p:", tryCatch(shapiro.test(res)$p.value, error=function(e) NA), "\n")
+}
+cat("Anderson-Darling residuos p:", ad.test(res)$p.value, "\n")
+```
+```{r}
+library(car)
+# Multicolinealidad: VIF
+vif_vals <- vif(lm0)
+print(vif_vals)
+```
+
+```{r}
+
+# Plots diagnósticos básicos
+par(mfrow=c(2,2))
+plot(lm0)
+par(mfrow=c(1,1))
+```
+
+
+```{r}
+
+# ACF de residuos (para estimar dependencia)
+acf_res <- acf(res, main="ACF residuos", lag.max = 50)
+```
+
+### Bootstrap
+
+```{r}
+
+# Bootstrap con dependencia: Moving Block Bootstrap (tsboot)
+
+stat_fun <- function(data_series, i){
+  # data_series: matrix/data.frame (original rows)
+  d <- data_series[i, , drop = FALSE]   # submuestreo por bloques cuando tsboot llama
+  mod <- lm(pm_PC1 ~ ., data = as.data.frame(d))
+  coefs <- coef(mod)
+  return(coefs)
+}
+```
+
+```{r}
+
+# Construir data.frame para la regresión: necesitamos solo variables del RHS + pm_PC1
+boot_df <- datos_std %>% select(pm_PC1, all_of(meteor_vars), all_of(season_dummies))
+boot_df <- as.data.frame(boot_df)
+```
+
+
+```{r}
+
+# Elección de longitud de bloque l:
+n <- nrow(boot_df)
+# regla simple: l = round(1.5 * n^(1/3)) (puedes ajustar)
+block_length <- max(2, round(1.5 * n^(1/3)))
+cat("Tamaño muestra n =", n, " -> block length =", block_length, "\n")
+```
+
+
+```{r}
+library(boot)
+# Usamos tsboot con tipo="block" (moving block bootstrap)
+stat_for_boot <- function(data, i) {
+  # i is index vector provided by tsboot; this will be used to subset rows
+  d <- data[i, , drop=FALSE]
+  mod <- lm(pm_PC1 ~ ., data = d)
+  return(coef(mod))
+}
+set.seed(12345)
+Rboot <- 2000  
+boot_ts <- tsboot(tseries = boot_df, statistic = stat_for_boot, R = Rboot,
+                  l = block_length, sim = "fixed")  # sim="fixed" para moving block
+
+```
+
+```{r}
+
+# boot_ts$t es una matrix R x p (p = número de coeficientes)
+coef_names <- names(coef(lm0))
+colnames(boot_ts$t) <- coef_names
+
+# Estimaciones bootstrap: medias y percentiles
+boot_estimates <- apply(boot_ts$t, 2, mean, na.rm=TRUE)
+boot_se <- apply(boot_ts$t, 2, sd, na.rm=TRUE)
+boot_ci_lower <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.025, na.rm=TRUE))
+boot_ci_upper <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.975, na.rm=TRUE))
+
+boot_summary <- data.frame(
+  term = coef_names,
+  orig_est = coef(lm0),
+  boot_mean = boot_estimates,
+  boot_se = boot_se,
+  CI_2.5 = boot_ci_lower,
+  CI_97.5 = boot_ci_upper
+)
+print(boot_summary)
+```
+
+
+```{r}
+# Interpretación y resultados
+
+boot_summary$signif_boot <- ifelse(boot_summary$CI_2.5 * boot_summary$CI_97.5 > 0, TRUE, FALSE)
+print(boot_summary)
+```
+
+
+```{r}
+
+# Gráficos de impacto: coeficientes con CI (bootstrap)
+
+library(ggplot2)
+coef_plot_df <- boot_summary %>% filter(term != "(Intercept)")
+coef_plot_df$term <- factor(coef_plot_df$term, levels = coef_plot_df$term[order(boot_summary$boot_mean)])
+ggplot(coef_plot_df, aes(x=term, y=boot_mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin=CI_2.5, ymax=CI_97.5), width=0.2) +
+  coord_flip() +
+  labs(title="Coeficientes (bootstrap block) y CI 95%", y="Coef bootstrap", x="Variable")
+
+
+```
+
+
+## SUR
+
+```{r}
+
+library(readxl); library(dplyr); library(ggplot2); library(GGally)
+library(corrplot); library(psych); library(car); library(lmtest)
+library(nortest); library(tseries); library(boot); library(zoo); library(forecast)
+
+
+file <- "datos_modificados_final.xlsx"    
+sheet <- "SUR"
+
+datos <- read_excel(path = file, sheet = sheet)
+
+glimpse(datos)
+head(datos)
+
+
+```
+
+
+```{r}
+
+pm25_name <- "PM2.5"
+pm10_name <- "PM10"
+meteor_vars <- c("TOUT","PRS","RAINF","RH", "SR", "WSR", "WDR")  
+
+season_var <- "season"                    
+season_dummies <- c("is_invierno","is_primavera","is_verano") 
+
+
+```
+
+```{r}
+
+datos_clean <- datos %>% 
+  select(all_of(c(pm25_name, pm10_name, meteor_vars, season_dummies))) %>%
+  na.omit()
+
+
+cor_pm <- cor(datos_clean[[pm25_name]], datos_clean[[pm10_name]], use="complete.obs")
+cat("Correlación pm2.5 vs pm10:", round(cor_pm,3), "\n")
+
+# Matriz de correlación entre meteorológicas y contaminantes
+corr_vars <- datos_clean %>% select(all_of(c(pm25_name, pm10_name, meteor_vars)))
+cor_mat <- cor(corr_vars, use = "pairwise.complete.obs")
+print(round(cor_mat,3))
+corrplot(cor_mat, method="number", type="upper", tl.cex = 0.8)
+
+
+```
+
+```{r}
+# Pares y distribuciones
+GGally::ggpairs(corr_vars)
+```
+
+
+
+```{r}
+# Histogramas y QQ-plots para pm25 y pm10
+par(mfrow=c(2,2))
+hist(datos_clean[[pm25_name]], main="pm2.5", xlab="pm2.5")
+qqnorm(datos_clean[[pm25_name]]); qqline(datos_clean[[pm25_name]])
+hist(datos_clean[[pm10_name]], main="pm10", xlab="pm10")
+qqnorm(datos_clean[[pm10_name]]); qqline(datos_clean[[pm10_name]])
+par(mfrow=c(1,1))
+```
+
+```{r}
+library(nortest)
+library(tseries)
+# Normalidad (Shapiro-Wilk para muestra pequeña; Anderson-Darling / Jarque-Bera)
+if(nrow(datos_clean) <= 5000){
+  cat("Shapiro pm2.5 p-value:", tryCatch(shapiro.test(datos_clean[[pm25_name]])$p.value, error=function(e) NA), "\n")
+  cat("Shapiro pm10 p-value:", tryCatch(shapiro.test(datos_clean[[pm10_name]])$p.value, error=function(e) NA), "\n")
+}
+jarque_bera_resultado <- tseries::jarque.bera.test(datos_clean[[pm25_name]])
+
+cat("Anderson-Darling pm2.5 p-value:", ad.test(datos_clean[[pm25_name]])$p.value, "\n")
+cat("Anderson-Darling pm10 p-value:", ad.test(datos_clean[[pm10_name]])$p.value, "\n")
+
+cat("Jarque-Bera pm2.5:")
+print(jarque_bera_resultado)
+```
+
+```{r}
+library(psych)
+describe(datos_clean)
+
+```
+
+Con esto vemos que tanto PM2.5 y PM10 están sesgadas
+La lluvia también la normalizaremos porque está muy sesgada
+WDR la convertimos mejor a seno y coseno
+
+Es por esto que hacemos las siguientes transformaciones
+
+```{r}
+library(dplyr)
+
+datos_clean <- datos_clean %>%
+  mutate(
+    pm25_log = log(PM2.5),
+    pm10_log = log(PM10)
+  )
+
+
+datos_clean <- datos_clean %>%
+  mutate(
+    RAINF_log = log(RAINF + 1),
+    WDR_sin = sin(WDR * pi/180),
+    WDR_cos = cos(WDR * pi/180)
+  )
+```
+
+```{r}
+
+# Ver si log mejora normalidad (visual)
+par(mfrow=c(2,2))
+qqnorm(datos_clean$pm25_log); qqline(datos_clean$pm25_log); title("QQ pm2.5 log")
+qqnorm(datos_clean$pm10_log); qqline(datos_clean$pm10_log); title("QQ pm10 log")
+hist(datos_clean$pm25_log); hist(datos_clean$pm10_log)
+par(mfrow=c(1,1))
+```
+
+```{r}
+# Convertir pm2.5 y pm10 a un componente común (PCA)
+pm_for_pca <- datos_clean %>% select(pm25_log, pm10_log)
+pca_res <- prcomp(pm_for_pca, center = TRUE, scale. = TRUE)
+summary(pca_res)
+```
+
+```{r}
+
+# Primera componente
+datos_clean$pm_PC1 <- pca_res$x[,1]
+
+
+# Proporción de varianza explicada
+pca_var_expl <- summary(pca_res)$importance[2,1]
+cat("Porcentaje varianza explicada por PC1:", round(100*pca_var_expl,2), "%\n")
+```
+
+```{r}
+
+# Estandarizar predictoras meteorológicas (z-score)
+datos_std <- datos_clean
+datos_std[meteor_vars] <- scale(datos_std[meteor_vars])
+```
+
+
+```{r}
+
+# Regresión lineal: pm_PC1 ~ meteorológicas + dummies de estación
+rhs <- paste(c(meteor_vars, season_dummies), collapse = " + ")
+formula_str <- paste("pm_PC1 ~", rhs)
+formula_lm <- as.formula(formula_str)
+cat("Modelo:", formula_str, "\n")
+
+lm0 <- lm(formula_lm, data = datos_std)
+summary(lm0)
+```
+### Diagnósitco de supuestos
+
+```{r}
+
+# Residuales
+res <- residuals(lm0)
+fitted <- fitted(lm0)
+```
+
+
+```{r}
+library(lmtest)
+# Homocedasticidad: Breusch-Pagan
+bp <- bptest(lm0)
+cat("Breusch-Pagan p-value:", bp$p.value, "\n")
+```
+
+```{r}
+
+# Autocorrelación: Durbin-Watson
+dw <- tryCatch(lmtest::dwtest(lm0), error=function(e) e)
+print(dw)
+```
+
+```{r}
+
+# 8.3 Normalidad de residuos: Shapiro / Anderson
+if(length(res) <= 5000){
+  cat("Shapiro residuos p:", tryCatch(shapiro.test(res)$p.value, error=function(e) NA), "\n")
+}
+cat("Anderson-Darling residuos p:", ad.test(res)$p.value, "\n")
+```
+```{r}
+library(car)
+# Multicolinealidad: VIF
+vif_vals <- vif(lm0)
+print(vif_vals)
+```
+
+```{r}
+
+# Plots diagnósticos básicos
+par(mfrow=c(2,2))
+plot(lm0)
+par(mfrow=c(1,1))
+```
+
+
+```{r}
+
+# ACF de residuos (para estimar dependencia)
+acf_res <- acf(res, main="ACF residuos", lag.max = 50)
+```
+
+### Bootstrap
+
+```{r}
+
+# Bootstrap con dependencia: Moving Block Bootstrap (tsboot)
+
+stat_fun <- function(data_series, i){
+  # data_series: matrix/data.frame (original rows)
+  d <- data_series[i, , drop = FALSE]   # submuestreo por bloques cuando tsboot llama
+  mod <- lm(pm_PC1 ~ ., data = as.data.frame(d))
+  coefs <- coef(mod)
+  return(coefs)
+}
+```
+
+```{r}
+
+# Construir data.frame para la regresión: necesitamos solo variables del RHS + pm_PC1
+boot_df <- datos_std %>% select(pm_PC1, all_of(meteor_vars), all_of(season_dummies))
+boot_df <- as.data.frame(boot_df)
+```
+
+
+```{r}
+
+# Elección de longitud de bloque l:
+n <- nrow(boot_df)
+# regla simple: l = round(1.5 * n^(1/3)) (puedes ajustar)
+block_length <- max(2, round(1.5 * n^(1/3)))
+cat("Tamaño muestra n =", n, " -> block length =", block_length, "\n")
+```
+
+
+```{r}
+library(boot)
+# Usamos tsboot con tipo="block" (moving block bootstrap)
+stat_for_boot <- function(data, i) {
+  # i is index vector provided by tsboot; this will be used to subset rows
+  d <- data[i, , drop=FALSE]
+  mod <- lm(pm_PC1 ~ ., data = d)
+  return(coef(mod))
+}
+set.seed(12345)
+Rboot <- 2000  
+boot_ts <- tsboot(tseries = boot_df, statistic = stat_for_boot, R = Rboot,
+                  l = block_length, sim = "fixed")  # sim="fixed" para moving block
+
+```
+
+```{r}
+
+# boot_ts$t es una matrix R x p (p = número de coeficientes)
+coef_names <- names(coef(lm0))
+colnames(boot_ts$t) <- coef_names
+
+# Estimaciones bootstrap: medias y percentiles
+boot_estimates <- apply(boot_ts$t, 2, mean, na.rm=TRUE)
+boot_se <- apply(boot_ts$t, 2, sd, na.rm=TRUE)
+boot_ci_lower <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.025, na.rm=TRUE))
+boot_ci_upper <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.975, na.rm=TRUE))
+
+boot_summary <- data.frame(
+  term = coef_names,
+  orig_est = coef(lm0),
+  boot_mean = boot_estimates,
+  boot_se = boot_se,
+  CI_2.5 = boot_ci_lower,
+  CI_97.5 = boot_ci_upper
+)
+print(boot_summary)
+```
+
+
+```{r}
+# Interpretación y resultados
+
+boot_summary$signif_boot <- ifelse(boot_summary$CI_2.5 * boot_summary$CI_97.5 > 0, TRUE, FALSE)
+print(boot_summary)
+```
+
+
+```{r}
+
+# Gráficos de impacto: coeficientes con CI (bootstrap)
+
+library(ggplot2)
+coef_plot_df <- boot_summary %>% filter(term != "(Intercept)")
+coef_plot_df$term <- factor(coef_plot_df$term, levels = coef_plot_df$term[order(boot_summary$boot_mean)])
+ggplot(coef_plot_df, aes(x=term, y=boot_mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin=CI_2.5, ymax=CI_97.5), width=0.2) +
+  coord_flip() +
+  labs(title="Coeficientes (bootstrap block) y CI 95%", y="Coef bootstrap", x="Variable")
+
+
+```
+
