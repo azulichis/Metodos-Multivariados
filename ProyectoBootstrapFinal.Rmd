@@ -1,0 +1,1244 @@
+---
+title: "ProyectoBootstrapFinal"
+author: "Azul Fernanda Paniagua Bucio"
+date: "2025-10-23"
+output: html_document
+---
+# Como los contaminantes afectan a la temperatura
+
+## SE
+
+```{r}
+
+library(readxl); library(dplyr); library(ggplot2); library(GGally)
+library(corrplot); library(psych); library(car); library(lmtest)
+library(nortest); library(tseries); library(boot); library(zoo); library(forecast)
+
+
+file <- "datos_modificados_final.xlsx"    
+sheet <- "SE"
+
+datos <- read_excel(path = file, sheet = sheet)
+
+glimpse(datos)
+head(datos)
+
+
+```
+
+
+```{r}
+
+pm25_name <- "PM2.5"
+pm10_name <- "PM10"
+meteor_vars <- c("TOUT","PRS","RH", "SR", "WSR", "WDR")  
+
+season_var <- "season"                    
+season_dummies <- c("is_invierno","is_primavera","is_verano") 
+
+
+```
+
+```{r}
+
+datos_clean <- datos %>% 
+  select(all_of(c(pm25_name, pm10_name, meteor_vars, season_dummies))) %>%
+  na.omit()
+
+
+cor_pm <- cor(datos_clean[[pm25_name]], datos_clean[[pm10_name]], use="complete.obs")
+cat("Correlación pm2.5 vs pm10:", round(cor_pm,3), "\n")
+
+# Matriz de correlación entre meteorológicas y contaminantes
+corr_vars <- datos_clean %>% select(all_of(c(pm25_name, pm10_name, meteor_vars)))
+cor_mat <- cor(corr_vars, use = "pairwise.complete.obs")
+print(round(cor_mat,3))
+corrplot(cor_mat, method="number", type="upper", tl.cex = 0.8)
+
+
+```
+
+```{r}
+# Pares y distribuciones
+GGally::ggpairs(corr_vars)
+```
+
+
+
+```{r}
+# Histogramas y QQ-plots para pm25 y pm10
+par(mfrow=c(2,2))
+hist(datos_clean[[pm25_name]], main="pm2.5", xlab="pm2.5")
+qqnorm(datos_clean[[pm25_name]]); qqline(datos_clean[[pm25_name]])
+hist(datos_clean[[pm10_name]], main="pm10", xlab="pm10")
+qqnorm(datos_clean[[pm10_name]]); qqline(datos_clean[[pm10_name]])
+par(mfrow=c(1,1))
+```
+
+```{r}
+library(nortest)
+library(tseries)
+# Normalidad (Shapiro-Wilk para muestra pequeña; Anderson-Darling / Jarque-Bera)
+if(nrow(datos_clean) <= 5000){
+  cat("Shapiro pm2.5 p-value:", tryCatch(shapiro.test(datos_clean[[pm25_name]])$p.value, error=function(e) NA), "\n")
+  cat("Shapiro pm10 p-value:", tryCatch(shapiro.test(datos_clean[[pm10_name]])$p.value, error=function(e) NA), "\n")
+}
+jarque_bera_resultado <- tseries::jarque.bera.test(datos_clean[[pm25_name]])
+
+cat("Anderson-Darling pm2.5 p-value:", ad.test(datos_clean[[pm25_name]])$p.value, "\n")
+cat("Anderson-Darling pm10 p-value:", ad.test(datos_clean[[pm10_name]])$p.value, "\n")
+
+cat("Jarque-Bera pm2.5:")
+print(jarque_bera_resultado)
+```
+
+```{r}
+library(psych)
+describe(datos_clean)
+
+```
+
+Con esto vemos que tanto PM2.5 y PM10 están sesgadas
+La lluvia también la normalizaremos porque está muy sesgada
+WDR la convertimos mejor a seno y coseno
+
+Es por esto que hacemos las siguientes transformaciones
+
+```{r}
+library(dplyr)
+
+datos_clean <- datos_clean %>%
+  mutate(
+    pm25_log = log(PM2.5),
+    pm10_log = log(PM10)
+  )
+
+
+```
+
+```{r}
+
+# Ver si log mejora normalidad (visual)
+par(mfrow=c(2,2))
+qqnorm(datos_clean$pm25_log); qqline(datos_clean$pm25_log); title("QQ pm2.5 log")
+qqnorm(datos_clean$pm10_log); qqline(datos_clean$pm10_log); title("QQ pm10 log")
+hist(datos_clean$pm25_log); hist(datos_clean$pm10_log)
+par(mfrow=c(1,1))
+```
+
+```{r}
+# Convertir pm2.5 y pm10 a un componente común (PCA)
+pm_for_pca <- datos_clean %>% select(pm25_log, pm10_log)
+pca_res <- prcomp(pm_for_pca, center = TRUE, scale. = TRUE)
+summary(pca_res)
+```
+
+```{r}
+
+# Primera componente
+datos_clean$pm_PC1 <- pca_res$x[,1]
+
+
+# Proporción de varianza explicada
+pca_var_expl <- summary(pca_res)$importance[2,1]
+cat("Porcentaje varianza explicada por PC1:", round(100*pca_var_expl,2), "%\n")
+```
+
+```{r}
+
+# Estandarizar predictoras meteorológicas (z-score)
+datos_std <- datos_clean
+datos_std[meteor_vars] <- scale(datos_std[meteor_vars])
+```
+
+
+```{r}
+
+# Regresión lineal: pm_PC1 ~ meteorológicas + dummies de estación
+rhs <- paste(c(meteor_vars, season_dummies), collapse = " + ")
+formula_str <- paste("pm_PC1 ~", rhs)
+formula_lm <- as.formula(formula_str)
+cat("Modelo:", formula_str, "\n")
+
+lm0 <- lm(formula_lm, data = datos_std)
+summary(lm0)
+```
+### Diagnósitco de supuestos
+
+```{r}
+
+# Residuales
+res <- residuals(lm0)
+fitted <- fitted(lm0)
+```
+
+
+```{r}
+library(lmtest)
+# Homocedasticidad: Breusch-Pagan
+bp <- bptest(lm0)
+cat("Breusch-Pagan p-value:", bp$p.value, "\n")
+```
+
+```{r}
+
+# Autocorrelación: Durbin-Watson
+dw <- tryCatch(lmtest::dwtest(lm0), error=function(e) e)
+print(dw)
+```
+
+```{r}
+
+# Normalidad de residuos: Shapiro / Anderson
+if(length(res) <= 5000){
+  cat("Shapiro residuos p:", tryCatch(shapiro.test(res)$p.value, error=function(e) NA), "\n")
+}
+cat("Anderson-Darling residuos p:", ad.test(res)$p.value, "\n")
+```
+```{r}
+library(car)
+# Multicolinealidad: VIF
+vif_vals <- vif(lm0)
+print(vif_vals)
+```
+
+```{r}
+
+# Plots diagnósticos básicos
+par(mfrow=c(2,2))
+plot(lm0)
+par(mfrow=c(1,1))
+```
+
+
+```{r}
+
+# ACF de residuos (para estimar dependencia)
+acf_res <- acf(res, main="ACF residuos", lag.max = 50)
+```
+
+### Bootstrap
+
+```{r}
+
+# Bootstrap con dependencia: Moving Block Bootstrap (tsboot)
+
+stat_fun <- function(data_series, i){
+  # data_series: matrix/data.frame (original rows)
+  d <- data_series[i, , drop = FALSE]   # submuestreo por bloques cuando tsboot llama
+  mod <- lm(pm_PC1 ~ ., data = as.data.frame(d))
+  coefs <- coef(mod)
+  return(coefs)
+}
+```
+
+```{r}
+
+# Construir data.frame para la regresión: necesitamos solo variables del RHS + pm_PC1
+boot_df <- datos_std %>% select(pm_PC1, all_of(meteor_vars), all_of(season_dummies))
+boot_df <- as.data.frame(boot_df)
+```
+
+
+```{r}
+
+# Elección de longitud de bloque l:
+n <- nrow(boot_df)
+# regla simple: l = round(1.5 * n^(1/3))
+block_length <- max(2, round(1.5 * n^(1/3)))
+cat("Tamaño muestra n =", n, " -> block length =", block_length, "\n")
+```
+
+
+```{r}
+library(boot)
+# Usamos tsboot con tipo="block" (moving block bootstrap)
+stat_for_boot <- function(data, i) {
+  d <- data[i, , drop=FALSE]
+  mod <- lm(pm_PC1 ~ ., data = d)
+  return(coef(mod))
+}
+set.seed(12345)
+Rboot <- 2000  
+boot_ts <- tsboot(tseries = boot_df, statistic = stat_for_boot, R = Rboot,
+                  l = block_length, sim = "fixed")  # sim="fixed" para moving block
+
+```
+
+```{r}
+
+# boot_ts$t es una matrix R x p (p = número de coeficientes)
+coef_names <- names(coef(lm0))
+colnames(boot_ts$t) <- coef_names
+
+# Estimaciones bootstrap: medias y percentiles
+boot_estimates <- apply(boot_ts$t, 2, mean, na.rm=TRUE)
+boot_se <- apply(boot_ts$t, 2, sd, na.rm=TRUE)
+boot_ci_lower <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.025, na.rm=TRUE))
+boot_ci_upper <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.975, na.rm=TRUE))
+
+boot_summary <- data.frame(
+  term = coef_names,
+  orig_est = coef(lm0),
+  boot_mean = boot_estimates,
+  boot_se = boot_se,
+  CI_2.5 = boot_ci_lower,
+  CI_97.5 = boot_ci_upper
+)
+print(boot_summary)
+```
+
+
+```{r}
+# Interpretación y resultados
+
+boot_summary$signif_boot <- ifelse(boot_summary$CI_2.5 * boot_summary$CI_97.5 > 0, TRUE, FALSE)
+print(boot_summary)
+```
+
+
+```{r}
+
+# Gráficos de impacto: coeficientes con CI (bootstrap)
+
+library(ggplot2)
+coef_plot_df <- boot_summary %>% filter(term != "(Intercept)")
+coef_plot_df$term <- factor(coef_plot_df$term, levels = coef_plot_df$term[order(boot_summary$boot_mean)])
+ggplot(coef_plot_df, aes(x=term, y=boot_mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin=CI_2.5, ymax=CI_97.5), width=0.2) +
+  coord_flip() +
+  labs(title="Coeficientes (bootstrap block) y CI 95%", y="Coef bootstrap", x="Variable")
+
+
+```
+
+
+
+## CE
+
+```{r}
+
+library(readxl); library(dplyr); library(ggplot2); library(GGally)
+library(corrplot); library(psych); library(car); library(lmtest)
+library(nortest); library(tseries); library(boot); library(zoo); library(forecast)
+
+
+file <- "datos_modificados_final.xlsx"    
+sheet <- "CE"
+
+datos <- read_excel(path = file, sheet = sheet)
+
+glimpse(datos)
+head(datos)
+
+
+```
+
+
+```{r}
+
+pm25_name <- "PM2.5"
+pm10_name <- "PM10"
+meteor_vars <- c("TOUT","PRS","RH", "SR", "WSR", "WDR")  
+
+season_var <- "season"                    
+season_dummies <- c("is_invierno","is_primavera","is_verano") 
+
+
+```
+
+```{r}
+
+datos_clean <- datos %>% 
+  select(all_of(c(pm25_name, pm10_name, meteor_vars, season_dummies))) %>%
+  na.omit()
+
+
+cor_pm <- cor(datos_clean[[pm25_name]], datos_clean[[pm10_name]], use="complete.obs")
+cat("Correlación pm2.5 vs pm10:", round(cor_pm,3), "\n")
+
+# Matriz de correlación entre meteorológicas y contaminantes
+corr_vars <- datos_clean %>% select(all_of(c(pm25_name, pm10_name, meteor_vars)))
+cor_mat <- cor(corr_vars, use = "pairwise.complete.obs")
+print(round(cor_mat,3))
+corrplot(cor_mat, method="number", type="upper", tl.cex = 0.8)
+
+
+```
+
+```{r}
+# Pares y distribuciones
+GGally::ggpairs(corr_vars)
+```
+
+
+
+```{r}
+# Histogramas y QQ-plots para pm25 y pm10
+par(mfrow=c(2,2))
+hist(datos_clean[[pm25_name]], main="pm2.5", xlab="pm2.5")
+qqnorm(datos_clean[[pm25_name]]); qqline(datos_clean[[pm25_name]])
+hist(datos_clean[[pm10_name]], main="pm10", xlab="pm10")
+qqnorm(datos_clean[[pm10_name]]); qqline(datos_clean[[pm10_name]])
+par(mfrow=c(1,1))
+```
+
+```{r}
+library(nortest)
+library(tseries)
+# Normalidad (Shapiro-Wilk para muestra pequeña; Anderson-Darling / Jarque-Bera)
+if(nrow(datos_clean) <= 5000){
+  cat("Shapiro pm2.5 p-value:", tryCatch(shapiro.test(datos_clean[[pm25_name]])$p.value, error=function(e) NA), "\n")
+  cat("Shapiro pm10 p-value:", tryCatch(shapiro.test(datos_clean[[pm10_name]])$p.value, error=function(e) NA), "\n")
+}
+jarque_bera_resultado <- tseries::jarque.bera.test(datos_clean[[pm25_name]])
+
+cat("Anderson-Darling pm2.5 p-value:", ad.test(datos_clean[[pm25_name]])$p.value, "\n")
+cat("Anderson-Darling pm10 p-value:", ad.test(datos_clean[[pm10_name]])$p.value, "\n")
+
+cat("Jarque-Bera pm2.5:")
+print(jarque_bera_resultado)
+```
+
+```{r}
+library(psych)
+describe(datos_clean)
+
+```
+
+Con esto vemos que tanto PM2.5 y PM10 están sesgadas
+La lluvia también la normalizaremos porque está muy sesgada
+WDR la convertimos mejor a seno y coseno
+
+Es por esto que hacemos las siguientes transformaciones
+
+```{r}
+library(dplyr)
+
+datos_clean <- datos_clean %>%
+  mutate(
+    pm25_log = log(PM2.5),
+    pm10_log = log(PM10)
+  )
+
+
+
+```
+
+```{r}
+
+# Ver si log mejora normalidad (visual)
+par(mfrow=c(2,2))
+qqnorm(datos_clean$pm25_log); qqline(datos_clean$pm25_log); title("QQ pm2.5 log")
+qqnorm(datos_clean$pm10_log); qqline(datos_clean$pm10_log); title("QQ pm10 log")
+hist(datos_clean$pm25_log); hist(datos_clean$pm10_log)
+par(mfrow=c(1,1))
+```
+
+```{r}
+# Convertir pm2.5 y pm10 a un componente común (PCA)
+pm_for_pca <- datos_clean %>% select(pm25_log, pm10_log)
+pca_res <- prcomp(pm_for_pca, center = TRUE, scale. = TRUE)
+summary(pca_res)
+```
+
+```{r}
+
+# Primera componente
+datos_clean$pm_PC1 <- pca_res$x[,1]
+
+
+# Proporción de varianza explicada
+pca_var_expl <- summary(pca_res)$importance[2,1]
+cat("Porcentaje varianza explicada por PC1:", round(100*pca_var_expl,2), "%\n")
+```
+
+```{r}
+
+# Estandarizar predictoras meteorológicas (z-score)
+datos_std <- datos_clean
+datos_std[meteor_vars] <- scale(datos_std[meteor_vars])
+```
+
+
+```{r}
+
+# Regresión lineal: pm_PC1 ~ meteorológicas + dummies de estación
+rhs <- paste(c(meteor_vars, season_dummies), collapse = " + ")
+formula_str <- paste("pm_PC1 ~", rhs)
+formula_lm <- as.formula(formula_str)
+cat("Modelo:", formula_str, "\n")
+
+lm0 <- lm(formula_lm, data = datos_std)
+summary(lm0)
+```
+### Diagnósitco de supuestos
+
+```{r}
+
+# Residuales
+res <- residuals(lm0)
+fitted <- fitted(lm0)
+```
+
+
+```{r}
+library(lmtest)
+# Homocedasticidad: Breusch-Pagan
+bp <- bptest(lm0)
+cat("Breusch-Pagan p-value:", bp$p.value, "\n")
+```
+
+```{r}
+
+# Autocorrelación: Durbin-Watson
+dw <- tryCatch(lmtest::dwtest(lm0), error=function(e) e)
+print(dw)
+```
+
+```{r}
+
+# 8.3 Normalidad de residuos: Shapiro / Anderson
+if(length(res) <= 5000){
+  cat("Shapiro residuos p:", tryCatch(shapiro.test(res)$p.value, error=function(e) NA), "\n")
+}
+cat("Anderson-Darling residuos p:", ad.test(res)$p.value, "\n")
+```
+```{r}
+library(car)
+# Multicolinealidad: VIF
+vif_vals <- vif(lm0)
+print(vif_vals)
+```
+
+```{r}
+
+# Plots diagnósticos básicos
+par(mfrow=c(2,2))
+plot(lm0)
+par(mfrow=c(1,1))
+```
+
+
+```{r}
+
+# ACF de residuos (para estimar dependencia)
+acf_res <- acf(res, main="ACF residuos", lag.max = 50)
+```
+
+### Bootstrap
+
+```{r}
+
+# Bootstrap con dependencia: Moving Block Bootstrap (tsboot)
+
+stat_fun <- function(data_series, i){
+  # data_series: matrix/data.frame (original rows)
+  d <- data_series[i, , drop = FALSE]   # submuestreo por bloques cuando tsboot llama
+  mod <- lm(pm_PC1 ~ ., data = as.data.frame(d))
+  coefs <- coef(mod)
+  return(coefs)
+}
+```
+
+```{r}
+
+# Construir data.frame para la regresión: necesitamos solo variables del RHS + pm_PC1
+boot_df <- datos_std %>% select(pm_PC1, all_of(meteor_vars), all_of(season_dummies))
+boot_df <- as.data.frame(boot_df)
+```
+
+
+```{r}
+
+# Elección de longitud de bloque l:
+n <- nrow(boot_df)
+# regla simple: l = round(1.5 * n^(1/3)) (puedes ajustar)
+block_length <- max(2, round(1.5 * n^(1/3)))
+cat("Tamaño muestra n =", n, " -> block length =", block_length, "\n")
+```
+
+
+```{r}
+library(boot)
+# Usamos tsboot con tipo="block" (moving block bootstrap)
+stat_for_boot <- function(data, i) {
+  # i is index vector provided by tsboot; this will be used to subset rows
+  d <- data[i, , drop=FALSE]
+  mod <- lm(pm_PC1 ~ ., data = d)
+  return(coef(mod))
+}
+set.seed(12345)
+Rboot <- 2000  
+boot_ts <- tsboot(tseries = boot_df, statistic = stat_for_boot, R = Rboot,
+                  l = block_length, sim = "fixed")  # sim="fixed" para moving block
+
+```
+
+```{r}
+
+# boot_ts$t es una matrix R x p (p = número de coeficientes)
+coef_names <- names(coef(lm0))
+colnames(boot_ts$t) <- coef_names
+
+# Estimaciones bootstrap: medias y percentiles
+boot_estimates <- apply(boot_ts$t, 2, mean, na.rm=TRUE)
+boot_se <- apply(boot_ts$t, 2, sd, na.rm=TRUE)
+boot_ci_lower <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.025, na.rm=TRUE))
+boot_ci_upper <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.975, na.rm=TRUE))
+
+boot_summary <- data.frame(
+  term = coef_names,
+  orig_est = coef(lm0),
+  boot_mean = boot_estimates,
+  boot_se = boot_se,
+  CI_2.5 = boot_ci_lower,
+  CI_97.5 = boot_ci_upper
+)
+print(boot_summary)
+```
+
+
+```{r}
+# Interpretación y resultados
+
+boot_summary$signif_boot <- ifelse(boot_summary$CI_2.5 * boot_summary$CI_97.5 > 0, TRUE, FALSE)
+print(boot_summary)
+```
+
+
+```{r}
+
+# Gráficos de impacto: coeficientes con CI (bootstrap)
+
+library(ggplot2)
+coef_plot_df <- boot_summary %>% filter(term != "(Intercept)")
+coef_plot_df$term <- factor(coef_plot_df$term, levels = coef_plot_df$term[order(boot_summary$boot_mean)])
+ggplot(coef_plot_df, aes(x=term, y=boot_mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin=CI_2.5, ymax=CI_97.5), width=0.2) +
+  coord_flip() +
+  labs(title="Coeficientes (bootstrap block) y CI 95%", y="Coef bootstrap", x="Variable")
+
+
+```
+
+
+## SO2
+
+```{r}
+
+library(readxl); library(dplyr); library(ggplot2); library(GGally)
+library(corrplot); library(psych); library(car); library(lmtest)
+library(nortest); library(tseries); library(boot); library(zoo); library(forecast)
+
+
+file <- "datos_modificados_final.xlsx"    
+sheet <- "SO2"
+
+datos <- read_excel(path = file, sheet = sheet)
+
+glimpse(datos)
+head(datos)
+
+
+```
+
+
+```{r}
+
+pm25_name <- "PM2.5"
+pm10_name <- "PM10"
+meteor_vars <- c("TOUT","PRS","RH", "SR", "WSR", "WDR")  
+
+season_var <- "season"                    
+season_dummies <- c("is_invierno","is_primavera","is_verano") 
+
+
+```
+
+```{r}
+
+datos_clean <- datos %>% 
+  select(all_of(c(pm25_name, pm10_name, meteor_vars, season_dummies))) %>%
+  na.omit()
+
+
+cor_pm <- cor(datos_clean[[pm25_name]], datos_clean[[pm10_name]], use="complete.obs")
+cat("Correlación pm2.5 vs pm10:", round(cor_pm,3), "\n")
+
+# Matriz de correlación entre meteorológicas y contaminantes
+corr_vars <- datos_clean %>% select(all_of(c(pm25_name, pm10_name, meteor_vars)))
+cor_mat <- cor(corr_vars, use = "pairwise.complete.obs")
+print(round(cor_mat,3))
+corrplot(cor_mat, method="number", type="upper", tl.cex = 0.8)
+
+
+```
+
+```{r}
+# Pares y distribuciones
+GGally::ggpairs(corr_vars)
+```
+
+
+
+```{r}
+# Histogramas y QQ-plots para pm25 y pm10
+par(mfrow=c(2,2))
+hist(datos_clean[[pm25_name]], main="pm2.5", xlab="pm2.5")
+qqnorm(datos_clean[[pm25_name]]); qqline(datos_clean[[pm25_name]])
+hist(datos_clean[[pm10_name]], main="pm10", xlab="pm10")
+qqnorm(datos_clean[[pm10_name]]); qqline(datos_clean[[pm10_name]])
+par(mfrow=c(1,1))
+```
+
+```{r}
+library(nortest)
+library(tseries)
+# Normalidad (Shapiro-Wilk para muestra pequeña; Anderson-Darling / Jarque-Bera)
+if(nrow(datos_clean) <= 5000){
+  cat("Shapiro pm2.5 p-value:", tryCatch(shapiro.test(datos_clean[[pm25_name]])$p.value, error=function(e) NA), "\n")
+  cat("Shapiro pm10 p-value:", tryCatch(shapiro.test(datos_clean[[pm10_name]])$p.value, error=function(e) NA), "\n")
+}
+jarque_bera_resultado <- tseries::jarque.bera.test(datos_clean[[pm25_name]])
+
+cat("Anderson-Darling pm2.5 p-value:", ad.test(datos_clean[[pm25_name]])$p.value, "\n")
+cat("Anderson-Darling pm10 p-value:", ad.test(datos_clean[[pm10_name]])$p.value, "\n")
+
+cat("Jarque-Bera pm2.5:")
+print(jarque_bera_resultado)
+```
+
+```{r}
+library(psych)
+describe(datos_clean)
+
+```
+
+Con esto vemos que tanto PM2.5 y PM10 están sesgadas
+La lluvia también la normalizaremos porque está muy sesgada
+WDR la convertimos mejor a seno y coseno
+
+Es por esto que hacemos las siguientes transformaciones
+
+```{r}
+library(dplyr)
+
+datos_clean <- datos_clean %>%
+  mutate(
+    pm25_log = log(PM2.5),
+    pm10_log = log(PM10)
+  )
+
+
+```
+
+```{r}
+
+# Ver si log mejora normalidad (visual)
+par(mfrow=c(2,2))
+qqnorm(datos_clean$pm25_log); qqline(datos_clean$pm25_log); title("QQ pm2.5 log")
+qqnorm(datos_clean$pm10_log); qqline(datos_clean$pm10_log); title("QQ pm10 log")
+hist(datos_clean$pm25_log); hist(datos_clean$pm10_log)
+par(mfrow=c(1,1))
+```
+
+```{r}
+# Convertir pm2.5 y pm10 a un componente común (PCA)
+pm_for_pca <- datos_clean %>% select(pm25_log, pm10_log)
+pca_res <- prcomp(pm_for_pca, center = TRUE, scale. = TRUE)
+summary(pca_res)
+```
+
+```{r}
+
+# Primera componente
+datos_clean$pm_PC1 <- pca_res$x[,1]
+
+
+# Proporción de varianza explicada
+pca_var_expl <- summary(pca_res)$importance[2,1]
+cat("Porcentaje varianza explicada por PC1:", round(100*pca_var_expl,2), "%\n")
+```
+
+```{r}
+
+# Estandarizar predictoras meteorológicas (z-score)
+datos_std <- datos_clean
+datos_std[meteor_vars] <- scale(datos_std[meteor_vars])
+```
+
+
+```{r}
+
+# Regresión lineal: pm_PC1 ~ meteorológicas + dummies de estación
+rhs <- paste(c(meteor_vars, season_dummies), collapse = " + ")
+formula_str <- paste("pm_PC1 ~", rhs)
+formula_lm <- as.formula(formula_str)
+cat("Modelo:", formula_str, "\n")
+
+lm0 <- lm(formula_lm, data = datos_std)
+summary(lm0)
+```
+### Diagnósitco de supuestos
+
+```{r}
+
+# Residuales
+res <- residuals(lm0)
+fitted <- fitted(lm0)
+```
+
+
+```{r}
+library(lmtest)
+# Homocedasticidad: Breusch-Pagan
+bp <- bptest(lm0)
+cat("Breusch-Pagan p-value:", bp$p.value, "\n")
+```
+
+```{r}
+
+# Autocorrelación: Durbin-Watson
+dw <- tryCatch(lmtest::dwtest(lm0), error=function(e) e)
+print(dw)
+```
+
+```{r}
+
+# 8.3 Normalidad de residuos: Shapiro / Anderson
+if(length(res) <= 5000){
+  cat("Shapiro residuos p:", tryCatch(shapiro.test(res)$p.value, error=function(e) NA), "\n")
+}
+cat("Anderson-Darling residuos p:", ad.test(res)$p.value, "\n")
+```
+```{r}
+library(car)
+# Multicolinealidad: VIF
+vif_vals <- vif(lm0)
+print(vif_vals)
+```
+
+```{r}
+
+# Plots diagnósticos básicos
+par(mfrow=c(2,2))
+plot(lm0)
+par(mfrow=c(1,1))
+```
+
+
+```{r}
+
+# ACF de residuos (para estimar dependencia)
+acf_res <- acf(res, main="ACF residuos", lag.max = 50)
+```
+
+### Bootstrap
+
+```{r}
+
+# Bootstrap con dependencia: Moving Block Bootstrap (tsboot)
+
+stat_fun <- function(data_series, i){
+  # data_series: matrix/data.frame (original rows)
+  d <- data_series[i, , drop = FALSE]   # submuestreo por bloques cuando tsboot llama
+  mod <- lm(pm_PC1 ~ ., data = as.data.frame(d))
+  coefs <- coef(mod)
+  return(coefs)
+}
+```
+
+```{r}
+
+# Construir data.frame para la regresión: necesitamos solo variables del RHS + pm_PC1
+boot_df <- datos_std %>% select(pm_PC1, all_of(meteor_vars), all_of(season_dummies))
+boot_df <- as.data.frame(boot_df)
+```
+
+
+```{r}
+
+# Elección de longitud de bloque l:
+n <- nrow(boot_df)
+# regla simple: l = round(1.5 * n^(1/3)) (puedes ajustar)
+block_length <- max(2, round(1.5 * n^(1/3)))
+cat("Tamaño muestra n =", n, " -> block length =", block_length, "\n")
+```
+
+
+```{r}
+library(boot)
+# Usamos tsboot con tipo="block" (moving block bootstrap)
+stat_for_boot <- function(data, i) {
+  # i is index vector provided by tsboot; this will be used to subset rows
+  d <- data[i, , drop=FALSE]
+  mod <- lm(pm_PC1 ~ ., data = d)
+  return(coef(mod))
+}
+set.seed(12345)
+Rboot <- 2000  
+boot_ts <- tsboot(tseries = boot_df, statistic = stat_for_boot, R = Rboot,
+                  l = block_length, sim = "fixed")  # sim="fixed" para moving block
+
+```
+
+```{r}
+
+# boot_ts$t es una matrix R x p (p = número de coeficientes)
+coef_names <- names(coef(lm0))
+colnames(boot_ts$t) <- coef_names
+
+# Estimaciones bootstrap: medias y percentiles
+boot_estimates <- apply(boot_ts$t, 2, mean, na.rm=TRUE)
+boot_se <- apply(boot_ts$t, 2, sd, na.rm=TRUE)
+boot_ci_lower <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.025, na.rm=TRUE))
+boot_ci_upper <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.975, na.rm=TRUE))
+
+boot_summary <- data.frame(
+  term = coef_names,
+  orig_est = coef(lm0),
+  boot_mean = boot_estimates,
+  boot_se = boot_se,
+  CI_2.5 = boot_ci_lower,
+  CI_97.5 = boot_ci_upper
+)
+print(boot_summary)
+```
+
+
+```{r}
+# Interpretación y resultados
+
+boot_summary$signif_boot <- ifelse(boot_summary$CI_2.5 * boot_summary$CI_97.5 > 0, TRUE, FALSE)
+print(boot_summary)
+```
+
+
+```{r}
+
+# Gráficos de impacto: coeficientes con CI (bootstrap)
+
+library(ggplot2)
+coef_plot_df <- boot_summary %>% filter(term != "(Intercept)")
+coef_plot_df$term <- factor(coef_plot_df$term, levels = coef_plot_df$term[order(boot_summary$boot_mean)])
+ggplot(coef_plot_df, aes(x=term, y=boot_mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin=CI_2.5, ymax=CI_97.5), width=0.2) +
+  coord_flip() +
+  labs(title="Coeficientes (bootstrap block) y CI 95%", y="Coef bootstrap", x="Variable")
+
+
+```
+
+
+## SUR
+
+```{r}
+
+library(readxl); library(dplyr); library(ggplot2); library(GGally)
+library(corrplot); library(psych); library(car); library(lmtest)
+library(nortest); library(tseries); library(boot); library(zoo); library(forecast)
+
+
+file <- "datos_modificados_final.xlsx"    
+sheet <- "SUR"
+
+datos <- read_excel(path = file, sheet = sheet)
+
+glimpse(datos)
+head(datos)
+
+
+```
+
+
+```{r}
+
+pm25_name <- "PM2.5"
+pm10_name <- "PM10"
+meteor_vars <- c("TOUT","PRS","RH", "SR", "WSR", "WDR")  
+
+season_var <- "season"                    
+season_dummies <- c("is_invierno","is_primavera","is_verano") 
+
+
+```
+
+```{r}
+
+datos_clean <- datos %>% 
+  select(all_of(c(pm25_name, pm10_name, meteor_vars, season_dummies))) %>%
+  na.omit()
+
+
+cor_pm <- cor(datos_clean[[pm25_name]], datos_clean[[pm10_name]], use="complete.obs")
+cat("Correlación pm2.5 vs pm10:", round(cor_pm,3), "\n")
+
+# Matriz de correlación entre meteorológicas y contaminantes
+corr_vars <- datos_clean %>% select(all_of(c(pm25_name, pm10_name, meteor_vars)))
+cor_mat <- cor(corr_vars, use = "pairwise.complete.obs")
+print(round(cor_mat,3))
+corrplot(cor_mat, method="number", type="upper", tl.cex = 0.8)
+
+
+```
+
+```{r}
+# Pares y distribuciones
+GGally::ggpairs(corr_vars)
+```
+
+
+
+```{r}
+# Histogramas y QQ-plots para pm25 y pm10
+par(mfrow=c(2,2))
+hist(datos_clean[[pm25_name]], main="pm2.5", xlab="pm2.5")
+qqnorm(datos_clean[[pm25_name]]); qqline(datos_clean[[pm25_name]])
+hist(datos_clean[[pm10_name]], main="pm10", xlab="pm10")
+qqnorm(datos_clean[[pm10_name]]); qqline(datos_clean[[pm10_name]])
+par(mfrow=c(1,1))
+```
+
+```{r}
+library(nortest)
+library(tseries)
+# Normalidad (Shapiro-Wilk para muestra pequeña; Anderson-Darling / Jarque-Bera)
+if(nrow(datos_clean) <= 5000){
+  cat("Shapiro pm2.5 p-value:", tryCatch(shapiro.test(datos_clean[[pm25_name]])$p.value, error=function(e) NA), "\n")
+  cat("Shapiro pm10 p-value:", tryCatch(shapiro.test(datos_clean[[pm10_name]])$p.value, error=function(e) NA), "\n")
+}
+jarque_bera_resultado <- tseries::jarque.bera.test(datos_clean[[pm25_name]])
+
+cat("Anderson-Darling pm2.5 p-value:", ad.test(datos_clean[[pm25_name]])$p.value, "\n")
+cat("Anderson-Darling pm10 p-value:", ad.test(datos_clean[[pm10_name]])$p.value, "\n")
+
+cat("Jarque-Bera pm2.5:")
+print(jarque_bera_resultado)
+```
+
+```{r}
+library(psych)
+describe(datos_clean)
+
+```
+
+Con esto vemos que tanto PM2.5 y PM10 están sesgadas
+La lluvia también la normalizaremos porque está muy sesgada
+WDR la convertimos mejor a seno y coseno
+
+Es por esto que hacemos las siguientes transformaciones
+
+```{r}
+library(dplyr)
+
+datos_clean <- datos_clean %>%
+  mutate(
+    pm25_log = log(PM2.5),
+    pm10_log = log(PM10)
+  )
+
+
+```
+
+```{r}
+
+# Ver si log mejora normalidad (visual)
+par(mfrow=c(2,2))
+qqnorm(datos_clean$pm25_log); qqline(datos_clean$pm25_log); title("QQ pm2.5 log")
+qqnorm(datos_clean$pm10_log); qqline(datos_clean$pm10_log); title("QQ pm10 log")
+hist(datos_clean$pm25_log); hist(datos_clean$pm10_log)
+par(mfrow=c(1,1))
+```
+
+```{r}
+# Convertir pm2.5 y pm10 a un componente común (PCA)
+pm_for_pca <- datos_clean %>% select(pm25_log, pm10_log)
+pca_res <- prcomp(pm_for_pca, center = TRUE, scale. = TRUE)
+summary(pca_res)
+```
+
+```{r}
+
+# Primera componente
+datos_clean$pm_PC1 <- pca_res$x[,1]
+
+
+# Proporción de varianza explicada
+pca_var_expl <- summary(pca_res)$importance[2,1]
+cat("Porcentaje varianza explicada por PC1:", round(100*pca_var_expl,2), "%\n")
+```
+
+```{r}
+
+# Estandarizar predictoras meteorológicas (z-score)
+datos_std <- datos_clean
+datos_std[meteor_vars] <- scale(datos_std[meteor_vars])
+```
+
+
+```{r}
+
+# Regresión lineal: pm_PC1 ~ meteorológicas + dummies de estación
+rhs <- paste(c(meteor_vars, season_dummies), collapse = " + ")
+formula_str <- paste("pm_PC1 ~", rhs)
+formula_lm <- as.formula(formula_str)
+cat("Modelo:", formula_str, "\n")
+
+lm0 <- lm(formula_lm, data = datos_std)
+summary(lm0)
+```
+### Diagnósitco de supuestos
+
+```{r}
+
+# Residuales
+res <- residuals(lm0)
+fitted <- fitted(lm0)
+```
+
+
+```{r}
+library(lmtest)
+# Homocedasticidad: Breusch-Pagan
+bp <- bptest(lm0)
+cat("Breusch-Pagan p-value:", bp$p.value, "\n")
+```
+
+```{r}
+
+# Autocorrelación: Durbin-Watson
+dw <- tryCatch(lmtest::dwtest(lm0), error=function(e) e)
+print(dw)
+```
+
+```{r}
+
+# 8.3 Normalidad de residuos: Shapiro / Anderson
+if(length(res) <= 5000){
+  cat("Shapiro residuos p:", tryCatch(shapiro.test(res)$p.value, error=function(e) NA), "\n")
+}
+cat("Anderson-Darling residuos p:", ad.test(res)$p.value, "\n")
+```
+```{r}
+library(car)
+# Multicolinealidad: VIF
+vif_vals <- vif(lm0)
+print(vif_vals)
+```
+
+```{r}
+
+# Plots diagnósticos básicos
+par(mfrow=c(2,2))
+plot(lm0)
+par(mfrow=c(1,1))
+```
+
+
+```{r}
+
+# ACF de residuos (para estimar dependencia)
+acf_res <- acf(res, main="ACF residuos", lag.max = 50)
+```
+
+### Bootstrap
+
+```{r}
+
+# Bootstrap con dependencia: Moving Block Bootstrap (tsboot)
+
+stat_fun <- function(data_series, i){
+  # data_series: matrix/data.frame (original rows)
+  d <- data_series[i, , drop = FALSE]   # submuestreo por bloques cuando tsboot llama
+  mod <- lm(pm_PC1 ~ ., data = as.data.frame(d))
+  coefs <- coef(mod)
+  return(coefs)
+}
+```
+
+```{r}
+
+# Construir data.frame para la regresión: necesitamos solo variables del RHS + pm_PC1
+boot_df <- datos_std %>% select(pm_PC1, all_of(meteor_vars), all_of(season_dummies))
+boot_df <- as.data.frame(boot_df)
+```
+
+
+```{r}
+
+# Elección de longitud de bloque l:
+n <- nrow(boot_df)
+# regla simple: l = round(1.5 * n^(1/3)) (puedes ajustar)
+block_length <- max(2, round(1.5 * n^(1/3)))
+cat("Tamaño muestra n =", n, " -> block length =", block_length, "\n")
+```
+
+
+```{r}
+library(boot)
+# Usamos tsboot con tipo="block" (moving block bootstrap)
+stat_for_boot <- function(data, i) {
+  # i is index vector provided by tsboot; this will be used to subset rows
+  d <- data[i, , drop=FALSE]
+  mod <- lm(pm_PC1 ~ ., data = d)
+  return(coef(mod))
+}
+set.seed(12345)
+Rboot <- 2000  
+boot_ts <- tsboot(tseries = boot_df, statistic = stat_for_boot, R = Rboot,
+                  l = block_length, sim = "fixed")  # sim="fixed" para moving block
+
+```
+
+```{r}
+
+# boot_ts$t es una matrix R x p (p = número de coeficientes)
+coef_names <- names(coef(lm0))
+colnames(boot_ts$t) <- coef_names
+
+# Estimaciones bootstrap: medias y percentiles
+boot_estimates <- apply(boot_ts$t, 2, mean, na.rm=TRUE)
+boot_se <- apply(boot_ts$t, 2, sd, na.rm=TRUE)
+boot_ci_lower <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.025, na.rm=TRUE))
+boot_ci_upper <- apply(boot_ts$t, 2, function(x) quantile(x, probs = 0.975, na.rm=TRUE))
+
+boot_summary <- data.frame(
+  term = coef_names,
+  orig_est = coef(lm0),
+  boot_mean = boot_estimates,
+  boot_se = boot_se,
+  CI_2.5 = boot_ci_lower,
+  CI_97.5 = boot_ci_upper
+)
+print(boot_summary)
+```
+
+
+```{r}
+# Interpretación y resultados
+
+boot_summary$signif_boot <- ifelse(boot_summary$CI_2.5 * boot_summary$CI_97.5 > 0, TRUE, FALSE)
+print(boot_summary)
+```
+
+
+```{r}
+
+# Gráficos de impacto: coeficientes con CI (bootstrap)
+
+library(ggplot2)
+coef_plot_df <- boot_summary %>% filter(term != "(Intercept)")
+coef_plot_df$term <- factor(coef_plot_df$term, levels = coef_plot_df$term[order(boot_summary$boot_mean)])
+ggplot(coef_plot_df, aes(x=term, y=boot_mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin=CI_2.5, ymax=CI_97.5), width=0.2) +
+  coord_flip() +
+  labs(title="Coeficientes (bootstrap block) y CI 95%", y="Coef bootstrap", x="Variable")
+
+
+```
+
